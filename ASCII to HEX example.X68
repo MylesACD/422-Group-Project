@@ -8,33 +8,32 @@
 START:                  ; first instruction of program
 
 
-        MOVE.B  #5,D0
-        TRAP    #15
-        MOVE.B  D1,D2
-        BRA     AtoH
+        MOVE.B  #5,D0            Primed to ask for a single character
+        TRAP    #15              Allows user to input 1 character
+        MOVE.B  D1,D2            Move character to D2 to be compared
+        BRA     AtoH             Goes to conversion
         
 
 * Put program code here
-AtoH    MOVE.B  #0,D3
-        CMP.B   #$30,D2
-        BLT.B   ERROR
-        CMP.B   #$39,D2
-        BGT.B   A
-        SUBI.B  #$30,D2
-        LEA     GOODMESSAGE,A1
+AtoH               
+        CMP.B   #$30,D2          If D2 smaller than $30, not an HEX character based on table
+        BLT.B   ERROR            Throws error if smaller
+        CMP.B   #$39,D2          If D2 smaller than $39, may be A-F
+        BGT.B   A                Tries to see if it's A-F
+        SUBI.B  #$30,D2          Subtracts to turn ASCII hex code to HEX value hex code
+        LEA     GOODMESSAGE,A1   Throws message that all good
         MOVE.B  #14,D0
         TRAP    #15
 
+        BRA     END              End program
+        
+ERROR   MOVE.B  #14,D0              Primes for error message
+        LEA     ERRORMESSAGE,A1     Primes for error message
+        TRAP    #15                 Throws error message
         BRA     END
         
-ERROR   MOVE.B  #14,D0
-        LEA     ERRORMESSAGE,A1
-        TRAP    #15
-        MOVE.B  #1,D3
-        BRA     END
         
-        
-A       CMPI.B  #$41,D2
+A       CMPI.B  #$41,D2             Does the same thing for AtoH, but only checks for A-F
         BLT.B   ERROR
         CMPI.B  #$46,D2
         BGT.B   ERROR
