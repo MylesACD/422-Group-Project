@@ -12,6 +12,11 @@ input2      EQU     $2000           where input 2 is stored (can be changed if n
 START:                  ; first instruction of program
 
 * Put program code here
+    BSR     INPUT
+    SIMHALT
+    
+INPUT:
+
     LEA     INPUT1MESSAGE,A1        loads message 1 to be outputed
     MOVE.B  #14,D0                  primes for task 14
     TRAP    #15                     asks user for first input
@@ -31,8 +36,8 @@ START:                  ; first instruction of program
     BSR     CONVERT                 string converted to hex address
     MOVE.L  D5,input2               moves result into input 2 memory location
     CLR D5                          clears D5 for future use
-    
-    
+    RTS    
+
     
 CONVERT:
     
