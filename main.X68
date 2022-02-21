@@ -1,6 +1,6 @@
 input1      EQU     $1000           where input 1 is stored (can be changed if needed)
 input2      EQU     $1004          where input 2 is stored (can be changed if needed)
-userInputStored    EQU     $1008   Leaving 5 bytes for user input, use address $1012 and beyond
+userInputStored    EQU     $1008   
 
 
 
@@ -38,14 +38,14 @@ firstInput
     BSR     CONVERT                 String converted to hex address
     
     CMP.B   #0,(InputQuality)       Checks if bad input flag set
-    BEQ     throwInput1Error        
+    BEQ     throwInput1CharError        
     
     AND.L   #$00FFFFFF,D5
     MOVE.L  D5,input1               Moves result into input 1 memory location
     CLR.L   D5                      Clears D5 for future use
     BRA     secondInput
     
-throwInput1Error
+throwInput1CharError
     LEA     INPUTERRORBADCHAR,A1
     MOVE.B  #14,D0
     TRAP    #15                     Outputs bad character error message
@@ -68,14 +68,16 @@ secondInput
     BSR     CONVERT                 String converted to hex address
 
     CMP.B   #0,(InputQuality)       
-    BEQ     throwInput2Error        Checks if bad input flag set
+    BEQ     throwInput2CharError        Checks if bad input flag set
     
     AND.L   #$00FFFFFF,D5
+    CMP.L   (input1),D5
+    BLT     throwInput2LowerError
     MOVE.L  D5,input2               Moves result into input 2 memory location
     CLR.L   D5                      Clears D5 for future use
     RTS    
     
-throwInput2Error
+throwInput2CharError
     LEA     INPUTERRORBADCHAR,A1    
     MOVE.B  #14,D0
     TRAP    #15                     Outputs bad character error message
@@ -84,6 +86,13 @@ throwInput2Error
     CLR.L   D5                      Clears D5 for future use
     
     BRA     secondInput             Tries again for input2
+    
+throwInput2LowerError
+    LEA     INPUTERROR2SMALLER,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    
+    BRA     secondInput
 
 
 **********************************************************
@@ -159,11 +168,11 @@ STARTMESSAGE    DC.B    'Welcome to the CSS 422 dissasembler!',CR,LF
                 DC.B    '3) Any part of the input that is not within the hexadecimal range ',CR,LF
                 DC.B    '   will be rejected',CR,LF
                 DC.B    '4) The first input must be smaller than the second, otherwise it ',CR,LF
-                DC.B    '   will be rejected',CR,LF  
-                DC.B    '5) No more than 10 characters allowed',CR,LF,CR,LF,0     
+                DC.B    '   will be rejected',CR,LF,0      
 INPUT1MESSAGE   DC.B    'Please input the lower address edge',CR,LF,0
 INPUT2MESSAGE   DC.B    'Please input the upper address edge',CR,LF,0
 INPUTERRORBADCHAR   DC.B    CR,LF,'This value is not valid',CR,LF,CR,LF,0
+INPUTERROR2SMALLER  DC.B    CR,LF,'Input 2 is smaller than input 1. Input a larger value',CR,LF,CR,LF,0
 
 InputQuality    DC.B    1       Set to 1 for default good
 
@@ -173,6 +182,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
