@@ -10,7 +10,126 @@ userInputStored    EQU     $1008
 START:                           *Main
 
     BSR     USERINPUT
+    MOVE.B #$12, D6
+    MOVE.W #$5004, A2
+    MOVEQ #10, D6
+    MOVEA.L A2, A3
+
+    BSR     OPCODE * test MOVE.B
+    MOVE.W #$5008, A2
+    BSR     OPCODE * test MOVE.W
+    MOVE.W #$500C, A2
+    BSR     OPCODE * test MOVEQ
+    MOVE.W #$500E, A2
+    BSR     OPCODE *test MOVEA.L
+
+
     SIMHALT
+
+
+
+**********************************************************
+*Subroutine: OPCODE
+*What it does: Looks at the word pointed to by A2 and determines opcode
+*Registers: 
+*A1: printing
+*A2: parameter with instruction address
+*D0: printing
+*D3: used for determing the instruction, mostly shifts
+*D4: used for determing the size
+*Paramemeters: A2 the memory address to decode from
+**********************************************************
+OPCODE:
+    CLR D3
+    Move.W (A2), D3 
+    LSR #8,D3 * make D3 only contain the first 4 bits of the instruction as its LSig word
+    LSR #4,D3
+    
+    
+    cmp #$4E71, (A2) *NOP compare
+    BEQ nop
+    
+    
+    Cmp #%0011, D3 *MOVE and MOVEA compare
+    BLE move
+    
+    Cmp #%0111, D3 *MOVEQ compare
+    BEQ moveq
+
+    
+return
+    RTS
+byte
+    LEA    byteout,A1        
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    BRA return
+word
+    LEA    wordout,A1        
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    BRA return
+long
+    LEA    longout,A1        
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    BRA return
+    
+nop 
+    LEA    nopout,A1        
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    BRA return
+    
+move
+    * put the size of the instruction into D2 to use later
+    * since the first two bits of D3 are 00 for move moving the entire word works
+    Move.W D3, D2
+
+
+    * determine if MOVE or MOVEA
+    * if bits 8,7,6 = 001 its MOVEA
+    MOVE.W (A2),D3
+    ANDI.W #%0000000111000000, D3 *extract only bits 8,7,6
+    
+    CMP #%0000000001000000,D3 * if only the sixth bit is set then instruction is MOVEA
+    BEQ movea
+    
+ 
+    LEA    moveout,A1     *print the type   
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #3,D2 *if the size is 3 branch to word
+    BEQ word
+    BRA byte *otherwise branch to byte
+  
+    BRA return
+    
+    
+movea
+    LEA    moveaout,A1       
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #3,D2 *if the size is 3 branch to word
+    BEQ word
+    
+    BRA return
+    
+moveq
+    LEA    moveqout,A1       
+    MOVE.B  #14,D0                  
+    TRAP    #15 
+    BRA return
+
+
 
 
 **********************************************************
@@ -174,6 +293,19 @@ INPUT2MESSAGE   DC.B    'Please input the upper address edge',CR,LF,0
 INPUTERRORBADCHAR   DC.B    CR,LF,'This value is not valid',CR,LF,CR,LF,0
 INPUTERROR2SMALLER  DC.B    CR,LF,'Input 2 is smaller than input 1. Input a larger value',CR,LF,CR,LF,0
 
+
+nopout  DC.B    'NOP',CR,LF,0
+moveout  DC.B    'MOVE',0
+moveaout DC.B      'MOVEA',0
+moveqout DC.B   'MOVEQ',CR,LF,0 * CR and LF is temp on this
+
+
+byteout  DC.B    '.B',CR,LF,0
+wordout  DC.B    '.W',CR,LF,0
+longout  DC.B    '.L',CR,LF,0
+
+empty    DC.B    '',CR,LF,0
+
 InputQuality    DC.B    1       Set to 1 for default good
 
 CR  EQU $0D
@@ -182,6 +314,8 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
+
 
 
 
