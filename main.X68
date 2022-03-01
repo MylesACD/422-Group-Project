@@ -1,6 +1,6 @@
-input1      EQU     $1000           where input 1 is stored (can be changed if needed)
-input2      EQU     $1004          where input 2 is stored (can be changed if needed)
-userInputStored    EQU     $1008   
+input1      EQU     $8000           where input 1 is stored (can be changed if needed)
+input2      EQU     $8004          where input 2 is stored (can be changed if needed)
+userInputStored    EQU     $8008   
 
 
 
