@@ -6,21 +6,21 @@ userInputStored    EQU     $1008
 
 
 
-    ORG    $5000
+    ORG    $1000
 START:                           *Main
 
     BSR     USERINPUT
     MOVE.B #$12, D6
-    MOVE.W #$5004, A2
+    MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
 
     BSR     OPCODE * test MOVE.B
-    MOVE.W #$5008, A2
+    MOVE.W #$1008, A2
     BSR     OPCODE * test MOVE.W
-    MOVE.W #$500C, A2
+    MOVE.W #$100C, A2
     BSR     OPCODE * test MOVEQ
-    MOVE.W #$500E, A2
+    MOVE.W #$100E, A2
     BSR     OPCODE *test MOVEA.L
 
 
@@ -314,6 +314,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
