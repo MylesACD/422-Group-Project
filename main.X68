@@ -22,11 +22,8 @@ START:                           *Main
     BSR     OPCODE * test MOVEQ
     MOVE.W #$100E, A2
     BSR     OPCODE *test MOVEA.L
-
-
+ 
     SIMHALT
-
-
 
 **********************************************************
 *Subroutine: OPCODE
@@ -61,24 +58,23 @@ return
     RTS
 byte
     LEA    byteout,A1        
-    MOVE.B  #14,D0                  
+    MOVE.B  #14,D0
     TRAP    #15 
     BRA return
 word
     LEA    wordout,A1        
-    MOVE.B  #14,D0                  
-    TRAP    #15 
+    MOVE.B  #14,D0
+    TRAP    #15
     BRA return
 long
     LEA    longout,A1        
-    MOVE.B  #14,D0                  
+    MOVE.B  #14,D0
     TRAP    #15 
     BRA return
     
 nop 
     LEA    nopout,A1        
-    MOVE.B  #14,D0                  
-    TRAP    #15 
+    BSR    OUTPUT
     BRA return
     
 move
@@ -97,8 +93,7 @@ move
     
  
     LEA    moveout,A1     *print the type   
-    MOVE.B  #14,D0                  
-    TRAP    #15 
+    BSR    OUTPUT
     
     *now to print size  
     cmp #2,D2 *if the size is 2 branch to long
@@ -112,8 +107,7 @@ move
     
 movea
     LEA    moveaout,A1       
-    MOVE.B  #14,D0                  
-    TRAP    #15 
+    BSR    OUTPUT
     
     *now to print size  
     cmp #2,D2 *if the size is 2 branch to long
@@ -125,17 +119,17 @@ movea
     
 moveq
     LEA    moveqout,A1       
-    MOVE.B  #14,D0                  
-    TRAP    #15 
+    BSR    OUTPUT
     BRA return
-
-
 
 
 **********************************************************
 *Subroutine: USERINPUT
 *What it does: Takes in user input, rejects bad input
 *Registers: Uses register A1, D0, D5
+*A1: Stores messages and user input
+*D0: Used for TRAP #15
+*D5: Temporaraly stores user input to be masked then transfered
 *Paramemeters: No parameters
 **********************************************************
 USERINPUT:
@@ -144,20 +138,26 @@ welcomeExplanation
     LEA     STARTMESSAGE,A1         
     MOVE.B  #14,D0
     TRAP    #15
+    
+    ADD.B   #8,(LineCounter)
 
 firstInput
     LEA     INPUT1MESSAGE,A1        
     MOVE.B  #14,D0                  
     TRAP    #15                     Asks user for first input
+    ADD.B   #1,(LineCounter)        Adds 1 to line counter
     
     LEA     userInputStored,A1
     MOVE.B  #2,D0                   
     TRAP    #15                     User can input string for address
+    ADD.B   #1,(LineCounter)        Adds 1 to line counter
+
     
     BSR     CONVERT                 String converted to hex address
     
     CMP.B   #0,(InputQuality)       Checks if bad input flag set
-    BEQ     throwInput1CharError        
+    BEQ     throwInput1CharError
+
     
     AND.L   #$00FFFFFF,D5
     MOVE.L  D5,input1               Moves result into input 1 memory location
@@ -168,9 +168,12 @@ throwInput1CharError
     LEA     INPUTERRORBADCHAR,A1
     MOVE.B  #14,D0
     TRAP    #15                     Outputs bad character error message
+    ADD.B   #3,(LineCounter)        Adds 2 to line counter
     
     MOVE.B  #1,(InputQuality)       Resets quality flag to default (good)
     CLR.L   D5                      Clears D5 for future use
+    
+    
     
     BRA     firstInput              Tries again for input1
 
@@ -179,10 +182,13 @@ secondInput
     LEA     INPUT2MESSAGE,A1        
     MOVE.B  #14,D0                  
     TRAP    #15                     Asks user for second input
+    ADD.B   #1,(LineCounter)
     
     LEA     userInputStored,A1
     MOVE.B  #2,D0                   
     TRAP    #15                     Sser can input string for address
+    ADD.B   #1,(LineCounter)
+
     
     BSR     CONVERT                 String converted to hex address
 
@@ -192,6 +198,9 @@ secondInput
     AND.L   #$00FFFFFF,D5
     CMP.L   (input1),D5
     BLT     throwInput2LowerError
+    
+    
+    
     MOVE.L  D5,input2               Moves result into input 2 memory location
     CLR.L   D5                      Clears D5 for future use
     RTS    
@@ -201,8 +210,10 @@ throwInput2CharError
     MOVE.B  #14,D0
     TRAP    #15                     Outputs bad character error message
     
-    MOVE.B  #1,(InputQuality)       Resets quality flag to default (good)
+    ADD.B  #3,(InputQuality)       Resets quality flag to default (good)
     CLR.L   D5                      Clears D5 for future use
+    
+    ADD.B   #3,(LineCounter)
     
     BRA     secondInput             Tries again for input2
     
@@ -210,6 +221,8 @@ throwInput2LowerError
     LEA     INPUTERROR2SMALLER,A1
     MOVE.B  #14,D0
     TRAP    #15
+    
+    ADD.B   #3,(LineCounter)
     
     BRA     secondInput
 
@@ -234,7 +247,7 @@ AtoH
     BLT     inputError
     
     CMP.B   #$39,D2                 Compares to 39, because 39 in ASCII is 9, which is largest number
-    BGT     uppercase               Branches if greater, may or may not be a letter in hex
+    BGT     upperCase               Branches if greater, may or may not be a letter in hex
     
     SUBI.B  #$30,D2                 Subtracts 30 to turn it into it's hex format
     ADD.B   D2,D5
@@ -242,18 +255,18 @@ AtoH
     BRA     AtoH
 
         
-uppercase   
+upperCase   
     CMP.B   #$41,D2
     BLT     InputError              Greater than 39 and less than 41 is not part of hex code
     
     CMP.B   #$46,D2                 
-    BGT     lowercase               Greater than 46 may be hex code in lowercase
+    BGT     lowerCase               Greater than 46 may be hex code in lowercase
     
     SUBI.B  #$37,D2                 Subtracts 37 to turn it into hex format
     ADD.B   D2,D5
     BRA     AtoH
 
-lowercase
+lowerCase
     CMP.B   #$61,D2
     BLT     InputError              Greater than 46 and less than 61 is not part of hex code
     
@@ -271,6 +284,72 @@ inputError
     MOVE.B  #0,(InputQuality)
     RTS
 
+
+
+   
+*********************************************************************
+*Subroutine: OUTPUT
+*What it does: Outputs parts of opword, moves to new screen if needed
+*Registers: Uses register A1, 
+*A1: Used to store messages and single char
+*Paramemeters: A1, (OutputType)
+*A1: Stores what should be used
+*OutputType: Stores value for what gets outputted
+*********************************************************************  
+
+     OUTPUT:
+     
+     CMP.B  #1,(OutputType)
+     BEQ    outputOpcode
+     CMP.B  #2,(OutputType)
+     BEQ    OutputSize
+     CMP.B  #3,(OutputType)
+     BEQ    OutputElse
+     
+outputOpcode    
+     CMP.B  #30, (LineCounter)      Console holds 32 lines total, 30 used for dissassembly data
+     BGE    outputOpcodeNewScreen
+     
+     MOVE.B #14,D0
+     TRAP   #15
+     
+     ADD.B  #1,(LineCounter)
+     
+     RTS
+     
+     
+outputOpcodeNewScreen
+     MOVE.L A1,-(SP)                Storing last message to be used later
+     
+     LEA    OUTPUTNEWSCREEN,A1         
+     MOVE.B #14,D0
+     TRAP   #15
+     
+     LEA    userInputStored,A1         Pauses program to show screen full of data
+     MOVE.B #2,D0
+     TRAP   #15
+     
+     LEA    NEWLINE,A1
+     MOVE.B #14,D0
+     TRAP   #15
+     
+     MOVE.B #0,(LineCounter)        Sets LineCounter to 0 to reset screen
+     
+     MOVE.L (SP)+,A1                Retriving message to be used
+     
+     MOVE.B #14,D0                  Outputting decoded message
+     TRAP   #15
+     
+     ADD.W  #1,(LineCounter)        Add to line counter for new screen
+     
+     RTS
+     
+outputSize
+    MOVE.B  #14,D0
+    TRAP    #15
+    RTS
+outputElse
+         
     
 END_SIMULATION:
         
@@ -283,7 +362,7 @@ END_SIMULATION:
 STARTMESSAGE    DC.B    'Welcome to the CSS 422 dissasembler!',CR,LF
                 DC.B    'Some quick rules:',CR,LF
                 DC.B    '1) Only the last 6 characters will be saved as the address',CR,LF
-                DC.B    '2) The input accepts hexadecimal input, both in upper and lower case',CR,LF
+                DC.B    '2) The input only accepts hexadecimal input, both in upper and lower case',CR,LF
                 DC.B    '3) Any part of the input that is not within the hexadecimal range ',CR,LF
                 DC.B    '   will be rejected',CR,LF
                 DC.B    '4) The first input must be smaller than the second, otherwise it ',CR,LF
@@ -292,7 +371,13 @@ INPUT1MESSAGE   DC.B    'Please input the lower address edge',CR,LF,0
 INPUT2MESSAGE   DC.B    'Please input the upper address edge',CR,LF,0
 INPUTERRORBADCHAR   DC.B    CR,LF,'This value is not valid',CR,LF,CR,LF,0
 INPUTERROR2SMALLER  DC.B    CR,LF,'Input 2 is smaller than input 1. Input a larger value',CR,LF,CR,LF,0
+OUTPUTNEWSCREEN     DC.B    'Please press enter for more code',CR,LF,0
 
+NEWLINE     DC.B    CR,LF,0
+
+InputQuality    DC.B    1       Set to 1 for default good
+LineCounter     DC.B    0      Counts the number of lines used per screen (max of 31)
+OutputType      DC.B    0      To track what type is being output
 
 nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
@@ -306,14 +391,13 @@ longout  DC.B    '.L',CR,LF,0
 
 empty    DC.B    '',CR,LF,0
 
-InputQuality    DC.B    1       Set to 1 for default good
-
 CR  EQU $0D
 LF  EQU $0A
 
 
 
     END    START        ; last line of source
+
 
 
 
