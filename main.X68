@@ -58,23 +58,24 @@ return
     RTS
 byte
     LEA    byteout,A1        
-    MOVE.B  #14,D0
-    TRAP    #15 
+    MOVE.B  #2,(OutputType)
+    BSR     OUTPUT 
     BRA return
 word
     LEA    wordout,A1        
-    MOVE.B  #14,D0
-    TRAP    #15
+    MOVE.B  #2,(OutputType)
+    BSR     OUTPUT
     BRA return
 long
     LEA    longout,A1        
-    MOVE.B  #14,D0
-    TRAP    #15 
+    MOVE.B  #2,(OutputType)
+    BSR     OUTPUT 
     BRA return
     
 nop 
     LEA    nopout,A1        
-    BSR    OUTPUT
+    MOVE.B  #1,(OutputType)
+    BSR     OUTPUT
     BRA return
     
 move
@@ -92,7 +93,8 @@ move
     BEQ movea
     
  
-    LEA    moveout,A1     *print the type   
+    LEA    moveout,A1     *print the type
+    MOVE.B  #1,(OutputType)   
     BSR    OUTPUT
     
     *now to print size  
@@ -106,7 +108,8 @@ move
     
     
 movea
-    LEA    moveaout,A1       
+    LEA    moveaout,A1
+    MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
     *now to print size  
@@ -118,7 +121,8 @@ movea
     BRA return
     
 moveq
-    LEA    moveqout,A1       
+    LEA    moveqout,A1
+    MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
 
@@ -288,23 +292,23 @@ inputError
 
    
 *********************************************************************
-*Subroutine: OUTPUT
+*Subroutine: OUTPUTOPCODE
 *What it does: Outputs parts of opword, moves to new screen if needed
 *Registers: Uses register A1, 
 *A1: Used to store messages and single char
 *Paramemeters: A1, (OutputType)
 *A1: Stores what should be used
-*OutputType: Stores value for what gets outputted
+*(OutputType): Stores a value corresponding to what gets outputted
 *********************************************************************  
 
      OUTPUT:
      
-     CMP.B  #1,(OutputType)
+     CMP.B  #1,(OutputType)        If OutputType has a 1, an opcode is being outputted (MOVE.B  #1,(OutputType) )
      BEQ    outputOpcode
-     CMP.B  #2,(OutputType)
+     CMP.B  #2,(OutputType)        If OutputType has a 2, an opcode size is being outputted (MOVE.B #2,(OutputType) )
      BEQ    OutputSize
-     CMP.B  #3,(OutputType)
-     BEQ    OutputElse
+     CMP.B  #3,(OutputType)        If OutputType has a 3, some data or an ea is being outputted  (MOVE.B    #3,(OutputType) )
+     BEQ    OutputData
      
 outputOpcode    
      CMP.B  #30, (LineCounter)      Console holds 32 lines total, 30 used for dissassembly data
@@ -313,7 +317,7 @@ outputOpcode
      MOVE.B #14,D0
      TRAP   #15
      
-     ADD.B  #1,(LineCounter)
+     ADD.B  #1,(LineCounter)        Adds to line counter to check when new screen needs to be loaded
      
      RTS
      
@@ -345,11 +349,18 @@ outputOpcodeNewScreen
      RTS
      
 outputSize
-    MOVE.B  #14,D0
+    MOVE.B  #14,D0                  No spaces nessecary, just outputs the string with no new line
     TRAP    #15
     RTS
-outputElse
-         
+outputData
+    MOVE.L A1,-(SP)                 Needs to be spaced to indicate data or EA is being output
+    LEA    SPACES,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+
+    MOVE.L  (SP)+,A1
+    MOVE.B  #14,D0
+    TRAP    #15     
     
 END_SIMULATION:
         
@@ -374,6 +385,7 @@ INPUTERROR2SMALLER  DC.B    CR,LF,'Input 2 is smaller than input 1. Input a larg
 OUTPUTNEWSCREEN     DC.B    'Please press enter for more code',CR,LF,0
 
 NEWLINE     DC.B    CR,LF,0
+SPACES      DC.B    '  ',0
 
 InputQuality    DC.B    1       Set to 1 for default good
 LineCounter     DC.B    0      Counts the number of lines used per screen (max of 31)
@@ -385,9 +397,9 @@ moveaout DC.B      'MOVEA',0
 moveqout DC.B   'MOVEQ',CR,LF,0 * CR and LF is temp on this
 
 
-byteout  DC.B    '.B',CR,LF,0
-wordout  DC.B    '.W',CR,LF,0
-longout  DC.B    '.L',CR,LF,0
+byteout  DC.B    '.B',0
+wordout  DC.B    '.W',0
+longout  DC.B    '.L',0
 
 empty    DC.B    '',CR,LF,0
 
