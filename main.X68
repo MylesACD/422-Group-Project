@@ -1,3 +1,4 @@
+addressOutput EQU   $9005
 input1      EQU     $8000           where input 1 is stored (can be changed if needed)
 input2      EQU     $8004          where input 2 is stored (can be changed if needed)
 userInputStored    EQU     $8008   
@@ -9,6 +10,7 @@ userInputStored    EQU     $8008
     ORG    $1000
 START:                           *Main
 
+userInputStart
     BSR     USERINPUT
     MOVE.B #$12, D6
     MOVE.W #$1004, A2
@@ -22,6 +24,19 @@ START:                           *Main
     BSR     OPCODE * test MOVEQ
     MOVE.W #$100E, A2
     BSR     OPCODE *test MOVEA.L
+    
+userInputRepeat
+    LEA     INPUTREPEAT,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    ADD.B   #1,(LineCounter)
+    
+    LEA     userInputStored,A1
+    MOVE.B  #5,D0
+    TRAP    #15
+    
+    CMP.B   #$00,(A1)
+    BEQ     userInputStart
  
     SIMHALT
 
@@ -157,7 +172,7 @@ firstInput
     ADD.B   #1,(LineCounter)        Adds 1 to line counter
 
     
-    BSR     CONVERT                 String converted to hex address
+    BSR     CONVERTATOH                 String converted to hex address
     
     CMP.B   #0,(InputQuality)       Checks if bad input flag set
     BEQ     throwInput1CharError
@@ -190,14 +205,14 @@ secondInput
     
     LEA     userInputStored,A1
     MOVE.B  #2,D0                   
-    TRAP    #15                     Sser can input string for address
+    TRAP    #15                     User can input string for address
     ADD.B   #1,(LineCounter)
 
     
-    BSR     CONVERT                 String converted to hex address
+    BSR     CONVERTATOH                 String converted to hex address
 
     CMP.B   #0,(InputQuality)       
-    BEQ     throwInput2CharError        Checks if bad input flag set
+    BEQ     throwInput2CharError    Checks if bad input flag set
     
     AND.L   #$00FFFFFF,D5
     CMP.L   (input1),D5
@@ -214,7 +229,7 @@ throwInput2CharError
     MOVE.B  #14,D0
     TRAP    #15                     Outputs bad character error message
     
-    ADD.B  #3,(InputQuality)       Resets quality flag to default (good)
+    ADD.B  #3,(InputQuality)        Resets quality flag to default (good)
     CLR.L   D5                      Clears D5 for future use
     
     ADD.B   #3,(LineCounter)
@@ -232,12 +247,12 @@ throwInput2LowerError
 
 
 **********************************************************
-*Subroutine: CONVERT
+*Subroutine: CONVERTATOH
 *What it does: Converts user input to hex code
 *Registers: Uses register A1, D2, D5
 *Paramemeters: User input stored in (A1)
 ********************************************************** 
-CONVERT:
+CONVERTATOH:
     
 AtoH
     MOVE.B  (A1)+,D2                Takes first bit (letter), moves to D2 for testing
@@ -292,23 +307,24 @@ inputError
 
    
 *********************************************************************
-*Subroutine: OUTPUTOPCODE
+*Subroutine: OUTPUT
 *What it does: Outputs parts of opword, moves to new screen if needed
 *Registers: Uses register A1, 
 *A1: Used to store messages and single char
-*Paramemeters: A1, (OutputType)
+*Paramemeters: A1
 *A1: Stores what should be used
-*(OutputType): Stores a value corresponding to what gets outputted
 *********************************************************************  
 
      OUTPUT:
      
-     CMP.B  #1,(OutputType)        If OutputType has a 1, an opcode is being outputted (MOVE.B  #1,(OutputType) )
+     CMP.B  #1,(OutputType)
      BEQ    outputOpcode
-     CMP.B  #2,(OutputType)        If OutputType has a 2, an opcode size is being outputted (MOVE.B #2,(OutputType) )
+     CMP.B  #2,(OutputType)
      BEQ    OutputSize
-     CMP.B  #3,(OutputType)        If OutputType has a 3, some data or an ea is being outputted  (MOVE.B    #3,(OutputType) )
+     CMP.B  #3,(OutputType)
      BEQ    OutputData
+     CMP.B  #4,(OutputType)
+     BEQ    OutputAddress
      
 outputOpcode    
      CMP.B  #30, (LineCounter)      Console holds 32 lines total, 30 used for dissassembly data
@@ -317,7 +333,7 @@ outputOpcode
      MOVE.B #14,D0
      TRAP   #15
      
-     ADD.B  #1,(LineCounter)        Adds to line counter to check when new screen needs to be loaded
+     ADD.B  #1,(LineCounter)
      
      RTS
      
@@ -349,11 +365,11 @@ outputOpcodeNewScreen
      RTS
      
 outputSize
-    MOVE.B  #14,D0                  No spaces nessecary, just outputs the string with no new line
+    MOVE.B  #14,D0
     TRAP    #15
     RTS
 outputData
-    MOVE.L A1,-(SP)                 Needs to be spaced to indicate data or EA is being output
+    MOVE.L A1,-(SP)
     LEA    SPACES,A1
     MOVE.B  #14,D0
     TRAP    #15
@@ -361,6 +377,54 @@ outputData
     MOVE.L  (SP)+,A1
     MOVE.B  #14,D0
     TRAP    #15     
+    
+outputAddress
+    MOVE.L  #$800,A3
+    MOVE.L  A2,(A3)
+    MOVE.L  D6,-(SP)
+    MOVE.B  #0,D0
+    LEA     addressOutput,A1
+outputAddressLoop
+    *check if loop has run 4 times
+    CMP.B   #4,D0
+    BEQ     outputAddressLoopEnd
+    *Grab byte from address, dont increment
+    MOVE.B  (A3),D6
+    *LSR to isolate left bit
+    LSR.B   #4,D6
+    *Call converthtoa
+    BSR     CONVERTHTOA
+    MOVE.B  D6,(A1)+   
+    *Grab bye from address, increment
+    MOVE.B  (A3)+,D6
+    *AND Mask second digit
+    AND.B   #$0F,D6
+    BSR     CONVERTHTOA
+    MOVE.B  D6,(A1)+
+    ADD.B   #1,D0
+    BRA     outputAddressLoop
+    
+    
+outputAddressLoopEnd
+    MOVE.B  #$00,(A1)
+    MOVE.L  (SP)+,D6
+    LEA     addressOutput,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    RTS
+
+    CONVERTHTOA:
+    
+    CMP.B   #9,D6
+    BLE     zerotonine
+    BRA     AtoF
+    
+zerotonine    
+    ADD.L   #$30,D6
+    RTS
+AtoF
+    ADD.L   #$37,D6
+    RTS
     
 END_SIMULATION:
         
@@ -380,8 +444,12 @@ STARTMESSAGE    DC.B    'Welcome to the CSS 422 dissasembler!',CR,LF
                 DC.B    '   will be rejected',CR,LF,0      
 INPUT1MESSAGE   DC.B    'Please input the lower address edge',CR,LF,0
 INPUT2MESSAGE   DC.B    'Please input the upper address edge',CR,LF,0
+
 INPUTERRORBADCHAR   DC.B    CR,LF,'This value is not valid',CR,LF,CR,LF,0
 INPUTERROR2SMALLER  DC.B    CR,LF,'Input 2 is smaller than input 1. Input a larger value',CR,LF,CR,LF,0
+
+INPUTREPEAT     DC.B    'To repeat the program, press enter. Otherwise, press any button to quit',CR,LF,0
+
 OUTPUTNEWSCREEN     DC.B    'Please press enter for more code',CR,LF,0
 
 NEWLINE     DC.B    CR,LF,0
@@ -397,9 +465,9 @@ moveaout DC.B      'MOVEA',0
 moveqout DC.B   'MOVEQ',CR,LF,0 * CR and LF is temp on this
 
 
-byteout  DC.B    '.B',0
-wordout  DC.B    '.W',0
-longout  DC.B    '.L',0
+byteout  DC.B    '.B',CR,LF,0
+wordout  DC.B    '.W',CR,LF,0
+longout  DC.B    '.L',CR,LF,0
 
 empty    DC.B    '',CR,LF,0
 
@@ -409,6 +477,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
