@@ -10,6 +10,7 @@ userInputStored    EQU     $8008
     ORG    $1000
 START:                           *Main
 
+    MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
     MOVE.B #$12, D6
@@ -17,7 +18,6 @@ userInputStart
     MOVEQ #10, D6
     MOVEA.L A2, A3
 
-    BSR     OPCODE * test MOVE.B
     MOVE.W #$1008, A2
     BSR     OPCODE * test MOVE.W
     MOVE.W #$100C, A2
@@ -349,10 +349,6 @@ outputOpcodeNewScreen
      MOVE.B #2,D0
      TRAP   #15
      
-     LEA    NEWLINE,A1
-     MOVE.B #14,D0
-     TRAP   #15
-     
      MOVE.B #0,(LineCounter)        Sets LineCounter to 0 to reset screen
      
      MOVE.L (SP)+,A1                Retriving message to be used
@@ -360,7 +356,7 @@ outputOpcodeNewScreen
      MOVE.B #14,D0                  Outputting decoded message
      TRAP   #15
      
-     ADD.W  #1,(LineCounter)        Add to line counter for new screen
+     ADD.B  #1,(LineCounter)        Add to line counter for new screen
      
      RTS
      
@@ -473,7 +469,6 @@ empty    DC.B    '',CR,LF,0
 
 CR  EQU $0D
 LF  EQU $0A
-
 
 
     END    START        ; last line of source
