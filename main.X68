@@ -17,13 +17,24 @@ userInputStart
     MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
-
-    MOVE.W #$1008, A2
-    BSR     OPCODE * test MOVE.W
+    BRA here
+here
     MOVE.W #$100C, A2
+    BSR     OPCODE * test MOVE.B
+
+    MOVE.W #$1010, A2
+    BSR     OPCODE * test MOVEA.W
+    
+    MOVE.W #$1014, A2
     BSR     OPCODE * test MOVEQ
-    MOVE.W #$100E, A2
-    BSR     OPCODE *test MOVEA.L
+   
+    MOVE.W #$1016, A2
+     BSR     OPCODE *test MOVEA.L
+     
+    MOVE.W #$1018, A2
+     BSR     OPCODE *test BRA
+
+
     
 userInputRepeat
     LEA     INPUTREPEAT,A1
@@ -58,16 +69,31 @@ OPCODE:
     LSR #4,D3
     
     
-    cmp #$4E71, (A2) *NOP compare
+    CMP #$4E71, (A2) *NOP compare
     BEQ nop
     
     
-    Cmp #%0011, D3 *MOVE and MOVEA compare
+    CMP #%0011, D3 *MOVE and MOVEA compare
     BLE move
     
-    Cmp #%0111, D3 *MOVEQ compare
+    CMP #%0111, D3 *MOVEQ compare
     BEQ moveq
 
+
+
+
+
+    CMP #$4E75, (A2) * RTS compare
+    BEQ rts
+    
+    Move.W (A2), D3 * reset D3
+    LSR #8,D3 * make D3 only contain the first 8 bits of the instruction as its LSig word
+    
+    CMP #%01100000, D3 *BRA compare
+    BEQ bra
+    
+    
+    BRA data
     
 return
     RTS
@@ -140,6 +166,19 @@ moveq
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
+rts
+    LEA    rtsout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+
+bra
+    LEA    braout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+
+data
 
 
 **********************************************************
@@ -460,6 +499,9 @@ moveout  DC.B    'MOVE',0
 moveaout DC.B      'MOVEA',0
 moveqout DC.B   'MOVEQ',CR,LF,0 * CR and LF is temp on this
 
+rtsout DC.B     'RTS',CR,LF,0
+braout DC.B     'BRA',CR,LF,0
+
 
 byteout  DC.B    '.B',CR,LF,0
 wordout  DC.B    '.W',CR,LF,0
@@ -472,6 +514,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
