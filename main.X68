@@ -348,7 +348,7 @@ inputError
 *********************************************************************
 *Subroutine: OUTPUT
 *What it does: Outputs parts of opword, moves to new screen if needed
-*Registers: Uses register A1, 
+*Registers: Uses register A1, D0,
 *A1: Used to store messages and single char
 *Paramemeters: A1
 *A1: Stores what should be used
@@ -444,10 +444,25 @@ outputAddressLoopEnd
     MOVE.B  #$00,(A1)
     MOVE.L  (SP)+,D6
     LEA     addressOutput,A1
+    
+    MOVE.L A1,-(SP)
+    LEA    SPACES,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+
+    MOVE.L  (SP)+,A1
     MOVE.B  #14,D0
     TRAP    #15
     RTS
 
+*********************************************************************
+*Subroutine: CONVERTHTOA
+*What it does: Converts HEX to ASCII
+*Registers: Uses register D6,D0
+*D6: Stores hex character to be converted
+*Paramemeters: D6
+*D6: Stores hex characcter to be converted
+*********************************************************************
     CONVERTHTOA:
     
     CMP.B   #9,D6
