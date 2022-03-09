@@ -444,15 +444,13 @@ outputAddressLoopEnd
     MOVE.B  #$00,(A1)
     MOVE.L  (SP)+,D6
     LEA     addressOutput,A1
+    MOVE.B  #14,D0
+    TRAP    #15
     
-    MOVE.L A1,-(SP)
-    LEA    SPACES,A1
+    LEA     spaces,A1
     MOVE.B  #14,D0
     TRAP    #15
 
-    MOVE.L  (SP)+,A1
-    MOVE.B  #14,D0
-    TRAP    #15
     RTS
 
 *********************************************************************
