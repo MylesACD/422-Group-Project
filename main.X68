@@ -17,9 +17,11 @@ userInputStart
     MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
+    CMP D1,D3
+    
     BRA here
 here
-    MOVE.W #$1200, A2
+    MOVE.W #$100C, A2
     BSR     OPCODE * test MOVE.B
 
     MOVE.W #$1010, A2
@@ -29,10 +31,16 @@ here
     BSR     OPCODE * test MOVEQ
    
     MOVE.W #$1016, A2
-     BSR     OPCODE *test MOVEA.L
-     
+    BSR     OPCODE *test MOVEA.L
+    
     MOVE.W #$1018, A2
-     BSR     OPCODE *test BRA
+    BSR     OPCODE *test DATA
+     
+    MOVE.W #$101A, A2
+    BSR     OPCODE *test BRA
+     
+    
+
 
 
     
@@ -183,6 +191,17 @@ bra
     BRA return
 
 data
+    LEA    dataout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    
+    MOVE.W (A2), D3
+    MOVE.L D3, A1
+    MOVE.B  #3,(OutputType)       
+    BSR    OUTPUT
+
+    BRA return
 
 
 **********************************************************
@@ -902,15 +921,17 @@ OutputType      DC.B    0      To track what type is being output
 nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
 moveaout DC.B      'MOVEA',0
-moveqout DC.B   'MOVEQ',CR,LF,0 * CR and LF is temp on this
+moveqout DC.B   'MOVEQ'
 
 rtsout DC.B     'RTS',CR,LF,0
 braout DC.B     'BRA',CR,LF,0
 
+dataout DC.B    'DATA   ',0
 
-byteout  DC.B    '.B',CR,LF,0
-wordout  DC.B    '.W',CR,LF,0
-longout  DC.B    '.L',CR,LF,0
+
+byteout  DC.B    '.B    ',0
+wordout  DC.B    '.W    ',0
+longout  DC.B    '.L    ',0
 
 empty    DC.B    '',CR,LF,0
 
@@ -931,3 +952,8 @@ LF  EQU $0A
 
 
 
+
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
+*~Tab size~4~
