@@ -19,7 +19,7 @@ userInputStart
     MOVEA.L A2, A3
     BRA here
 here
-    MOVE.W #$100C, A2
+    MOVE.W #$1200, A2
     BSR     OPCODE * test MOVE.B
 
     MOVE.W #$1010, A2
@@ -143,8 +143,10 @@ move
     BEQ long
     cmp #3,D2 *if the size is 3 branch to word
     BEQ word
-    BRA byte *otherwise branch to byte
+    BSR byte *otherwise branch to byte
   
+    BSR MOVE_MOVEA_EA
+    
     BRA return
     
     
@@ -157,7 +159,9 @@ movea
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #3,D2 *if the size is 3 branch to word
-    BEQ word
+    BSR word
+    
+    BSR MOVE_MOVEA_EA
     
     BRA return
     
@@ -342,6 +346,392 @@ inputError
     MOVE.B  #0,(InputQuality)
     RTS
 
+*********************************************************************
+*Subroutine: EA
+*What it does: Outputs parts of opword, moves to new screen if needed
+*Registers: Uses register A1, D0,
+*A1: Used to store messages and single char
+*Paramemeters: A1
+*A1: Stores what should be used
+*********************************************************************  
+BITS0TO5_MASK   EQU %00111111
+BITS7TO8_MASK   EQU %11000000
+BITS9TO11_MASK  EQU %00000111000000000
+
+FORMAT_IMMEDIATE_DATA   MOVE.B  #10,D7
+                        CMP     #0,D6
+                        BEQ     IMMEDIATE0
+                        BRA     IMMEDIATE_END
+IMMEDIATE0              MOVEQ   #8,D6
+
+IMMEDIATE_END           RTS
+
+MOVE_MOVEA_EA   MOVE.W  (A2),D1
+                ANDI.B  #BITS0TO5_MASK,D1           * Isolate the source EA bits
+                ORI.B   #BITS7TO8_MASK,D1           * Populate the S and D bits
+                MOVE.B  D1,D6                   * Pass source EA to print subroutine
+                MOVE.W  (A2),D1         
+                MOVE.W  (A2),D2 
+                ANDI.W  #BITS9TO11_MASK,D1   * Isolate the destination register number
+                MOVE.B  #9,D3                   * Prepare shift count
+                LSR.W   D3,D1                   * Move destination register bits right
+                ANDI.W  #%0000000111000000,D2   * Isolate the destination mode
+                LSR.W   #3,D2                  * Move destination mode bits right
+                OR.W    D2,D1
+                MOVE.B  D1,D5                   * Pass destination EA to print subroutine
+                MOVE.B  D6,D1               * Pass source into subroutine
+                JSR     CHECK_VALID_EA
+                MOVE.B  D5,D1               * Pass destination into subroutine
+                JSR     CHECK_VALID_EA
+                BSR print_EA
+                BSR print_NEWLINE
+                
+                RTS
+
+   
+Memory_to_Register LSR.L #3, D2
+                   AND.B #$07, D2
+                   CMP.B #$2,D2
+                   BEQ   MODE_010
+                   CMP.B #$03, D2
+                   BEQ   MODE_010  
+                   CMP.B #$07,D2
+                   BEQ   MODE_010  
+                   JMP   WRONG_INSTRUCTION    
+   
+WRONG_INSTRUCTION            MOVE.B   #5, D7 ; A WRONG INSTRUCTION 'KEY'
+                             MOVEA.L  A2, A6 ;MOVING THE MEMORY ADDRESS INTO A6 WHEN INSTRUCTION IS WRONG 
+                             MOVE.W  (A2),D6 ;MOVE MEMORY ADDRESS INTO D6, AND INCREMENT A2 BY WORD
+                             RTS 
+           
+MODE_010  MOVE.W    (A2),D2
+          AND.B     #$3F,D2
+          BSET      #7,D2 *SET THE DESTINATION INDICATOR
+          MOVE.B    D2,D6
+          RTS
+
+Register_to_memory MOVE.W (A2),D2
+                   LSR.L #3, D2
+                   AND.B #$07, D2
+                   CMP.B #$2,D2
+                   BEQ   MODE_01_0
+                   CMP.B #$04, D2
+                   BEQ   MODE_01_0 
+                   CMP.B #$07,D2
+                   BEQ   MODE_01_0 
+                   JMP   WRONG_INSTRUCTION
+                   
+
+MODE_01_0       MOVE.W  (A2),D6
+                ANDI.B  #$3F,D6
+                RTS
+         
+CHECK_VALID_EA  MOVE.B  D1,D0
+                ANDI.B  #%111000,D0
+                LSR     #3,D0
+                CMP.B   #%00000101,D0
+                BEQ     INVALID_EA
+                CMP.B   #%00000110,D0
+                BEQ     INVALID_EA
+                CMP.B   #%00000111,D0
+                BEQ     VALID_EA_PC
+                RTS
+                
+                
+VALID_EA_PC     MOVE.B  D1,D0
+                ANDI.B  #%000111,D0
+                CMP.B   #%00010000,D0
+                BEQ     INVALID_EA
+                CMP.B   #%00011000,D0
+                BEQ     INVALID_EA
+                RTS
+                
+INVALID_EA      JSR     WRONG_INSTRUCTION
+                MOVE.W  #5, A5
+                RTS
+                
+PRINT_EA        MOVEM.L A0-A1/A3-A6/D0-D7,-(SP)
+                MOVE.B  #$38,D3
+                AND.B   D4,D3
+                AND.B   #$7, D4
+                
+                CMP.B   #$0, D3
+                BNE     CHECK_EA_AR
+                ADD.B   #$D0, D4
+                CLR.L   D1
+                MOVE.B  D4, D1
+                JSR     PRINT_REGISTOR              * DATA REG
+                BRA     PRINT_EA_RETURN
+
+CHECK_EA_AR         CMP.B   #$8, D3
+                    BNE     CHECK_EA_INDIRECT
+                    ADD.B   #$A0, D4
+                    CLR.L   D1
+                    MOVE.B  D4, D1
+                    JSR     PRINT_REGISTOR          * ADDRESS REG
+                    BRA     PRINT_EA_RETURN
+                    
+CHECK_EA_INDIRECT       CMP.B   #$10, D3
+                        BNE     CHECK_EA_POST
+                        JSR     PRINT_OPEN_PARENTHESIS      * (
+                        ADD.B   #$A0, D4
+                        CLR.L   D1
+                        MOVE.B  D4, D1
+                        JSR     PRINT_REGISTOR              * ADDRESS REG
+                        JSR     PRINT_CLOSED_PARENTHESIS    * )
+                        BRA     PRINT_EA_RETURN
+                        
+CHECK_EA_POST   CMP.B   #$18,D3
+                BNE     CHECK_EA_PRE
+                JSR     PRINT_OPEN_PARENTHESIS      * (
+                ADD.B   #$A0, D4
+                CLR.L   D1
+                MOVE.B  D4, D1
+                JSR     PRINT_REGISTOR              * ADDRESS REG
+                JSR     PRINT_CLOSED_PARENTHESIS    * )
+                JSR     PRINT_PLUS                  * +
+                BRA     PRINT_EA_RETURN
+
+CHECK_EA_PRE        CMP.B   #$20,D3
+                    BNE     CHECK_EA_AB_W
+                    JSR     PRINT_MINUS                 * -
+                    JSR     PRINT_OPEN_PARENTHESIS      * (
+                    ADD.B   #$A0, D4
+                    CLR.L   D1
+                    MOVE.B  D4, D1
+                    JSR     PRINT_REGISTOR              * ADDRESS REG
+                    JSR     PRINT_CLOSED_PARENTHESIS    * )
+                    BRA     PRINT_EA_RETURN
+
+CHECK_EA_AB_W           ADD.B   D4,D3
+                        CMP.B   #$38,D3     
+                        BNE     CHECK_EA_AB_L
+                        JSR     PRINT_DOLLAR        * $
+                        MOVE.W  (A2)+,D5            * PRINTING WORD ABSOLUTE
+                        MOVE.B  #2,D3
+                        JSR     PRINT_HEX
+                        BRA     PRINT_EA_RETURN
+                        
+CHECK_EA_AB_L       CMP.B   #$39, D3
+                    BNE     CHECK_EA_IMM
+                    JSR     PRINT_DOLLAR        * $
+                    MOVE.L  (A2)+,D5            * PRINTING LONG ABSOLUTE
+                    MOVE.B  #4,D3
+                    JSR     PRINT_HEX
+                    BRA     PRINT_EA_RETURN
+                    
+CHECK_EA_IMM        CMP.B   #4,D7
+                    BNE     READ_WORD_IMM
+                    JSR     PRINT_HASH_SIGN     * #
+                    JSR     PRINT_DOLLAR        * $
+                    MOVE.L  (A2)+,D5            * PRINTING LONG IMMIDIATE
+                    MOVE.B  #4,D3
+                    JSR     PRINT_HEX
+                    BRA     PRINT_EA_RETURN
+                    
+READ_WORD_IMM       JSR     PRINT_HASH_SIGN     * #
+                    JSR     PRINT_DOLLAR        * $
+                    MOVE.W  (A2)+,D5            * PRINTING WORD/BYTE IMMIDIATE        
+                    MOVE.B  #2,D3
+                    JSR     PRINT_HEX
+
+PRINT_EA_RETURN     MOVEM.L     (SP)+,A0-A1/A3-A6/D0-D7   * THE RETURN FOR THE EA PRINTER
+                    RTS
+ALL_REG     REG     D0-D7/A0-A6         ; all registers
+PRINT_BUFFER    DS.B    10
+IPUT_BUFFER_EX  DC.B    '00000000'
+INPUT_BUFFER    DS.B    15                    
+PRINT_HEX       MOVEM.L     ALL_REG,-(SP)
+                LEA         PRINT_BUFFER, A1        *SETTING UP PRINT BUFFER
+                ADD.L       #10,A1
+                MOVE.B      #0,-(A1)                *NULL FOR PRINTER TO STOP
+                BRA         POPULATE_BUFFER
+                
+PRINT_HEX_RETURN    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+               
+POPULATE_BUFFER     CMP.B       #0,D3
+                    BEQ         PRINT_HEX_RETURN
+                    MOVE.B      #$0F,D4
+                    AND.B       D5,D4
+                    ROR.B       #4,D5
+                    JSR         HEX_TO_ASCII
+                    MOVE.B      D4,-(A1)
+                    MOVE.B      D5,D4
+                    AND.B       #$0F,D4
+                    JSR         HEX_TO_ASCII
+                    MOVE.B      D4,-(A1)
+                    LSR.L       #8,D5
+                    SUB.B       #1,D3
+                    BRA         POPULATE_BUFFER
+
+HEX_TO_ASCII            MOVEM.L     A0-A6/D0-D2/D5-D7,-(SP)
+                        CMP.B       #9,D4
+                        BLE         NUMBER_TO_ASCII
+                        ADD.B       #$37,D4
+HEX_TO_ASCII_RETURN     MOVEM.L   (SP)+,A0-A6/D0-D2/D5-D7
+                        RTS
+                
+NUMBER_TO_ASCII     ADD.B   #$30,D4
+                    BRA     HEX_TO_ASCII_RETURN                    
+                    
+PRINT_REGISTOR      MOVEM.L     ALL_REG,-(SP)       * keeping old value
+                    MOVE.W      #00,-(SP)           *for printing purpose
+                    MOVE.W      #$f0,D2             *manipulating each digit
+                    AND.W       D1,D2
+                    ASR.W       #4,D2
+                    JSR         TO_STRING           * converts to the string ASCII val
+                    ASL.W       #8,D2
+                    
+                    AND.W       #$F,D1              * the last digit
+                    MOVE.B      D1,D2               
+                    JSR         TO_STRING
+                    MOVE.W      D2,-(SP)            * puting on the stack to print
+                    
+                    MOVE.L      SP,A1               * printing
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVE.L      (SP)+, D5           * Adjesting the sp
+
+PRINT_REGISTOR_RETURN           MOVEM.L     (SP)+,ALL_REG   *returning the original val
+                                RTS
+                                
+TO_STRING   CMP.B   #9,D2               * check if digit or leter
+            BGT     LETTERS     
+            ADD.B   #$30,D2             * offseting digit
+            RTS
+LETTERS     ADD.B   #$37,D2             * offseting leter
+            RTS   
+
+*________________________________________________________________________________________
+
+
+*________________ PRINT OPEN PARENTHESIS ________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+OPEN_PAR_TAG        DC.B    '(',0  
+CLOSED_PAR_TAG      DC.B    ')',0
+HASH_SIGN_TAG       DC.B    '#',0
+DOLLAR_TAG          DC.B    '$',0
+FORWARD_SLASH_TAG   DC.B    '/',0      
+PRINT_OPEN_PARENTHESIS  MOVEM.L     ALL_REG, -(SP)
+                        LEA         OPEN_PAR_TAG, A1
+                        MOVE.B      #14,D0
+                        TRAP        #15
+                        MOVEM.L     (SP)+,ALL_REG
+                        RTS
+*_________________________________________________________________________________
+
+*________________ PRINT CLOSED PARENTHESIS ________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+        
+PRINT_CLOSED_PARENTHESIS    MOVEM.L     ALL_REG, -(SP)
+                            LEA         CLOSED_PAR_TAG, A1
+                            MOVE.B      #14,D0
+                            TRAP        #15
+                            MOVEM.L     (SP)+,ALL_REG
+                            RTS
+*__________________________________________________________________________________
+
+*________________ PRINT PLUS SIGN _________________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+PLUS_TAG            DC.B    '+',0
+MINUS_TAG           DC.B    '-',0        
+PRINT_PLUS      MOVEM.L     ALL_REG, -(SP)
+                LEA         PLUS_TAG, A1
+                MOVE.B      #14,D0
+                TRAP        #15
+                MOVEM.L     (SP)+,ALL_REG
+                RTS
+*_________________________________________________________________________________
+
+*________________ PRINT MINUS SIGN _______________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+        
+PRINT_MINUS         MOVEM.L     ALL_REG, -(SP)
+                    LEA         MINUS_TAG, A1
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+*_________________________________________________________________________________
+
+*________________ PRINT COMMA ____________________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+TAB_TAG         DC.B    $9,0
+SPACE_TAG       DC.B    ' ',0
+COMMA_TAG       DC.B    ',',0        
+PRINT_COMMA         MOVEM.L     ALL_REG,-(SP)
+                    LEA         COMMA_TAG, A1
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+*_________________________________________________________________________________
+
+*________________ PRINT TAB ______________________________________________________
+        *PARAMENTER     NO PARAMETER NEEDED
+        
+PRINT_TAB       MOVEM.L     ALL_REG,-(SP)
+                LEA         TAB_TAG, A1
+                MOVE.B      #14,D0
+                TRAP        #15
+                MOVEM.L     (SP)+,ALL_REG
+                RTS
+*_________________________________________________________________________________
+
+
+*_______________    PRINT NEWLINE   ________________________________________________
+        *PARAMETER NO PARAMETER NEEDED
+NEWLINE_TAG         DC.B    CR,LF,0        
+PRINT_NEWLINE       MOVEM.L     ALL_REG,-(SP)
+                    LEA         NEWLINE_TAG, A1
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+
+*___________________________________________________________________________________
+
+
+*_______________    PRINT HASH SIGN   ________________________________________________
+        *PARAMETER NO PARAMETER NEEDED
+        
+PRINT_HASH_SIGN     MOVEM.L     ALL_REG,-(SP)
+                    LEA         HASH_SIGN_TAG, A1
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+
+*___________________________________________________________________________________
+
+
+
+*_______________    PRINT DOLLAR   ________________________________________________
+        *PARAMETER NO PARAMETER NEEDED
+        
+PRINT_DOLLAR        MOVEM.L     ALL_REG,-(SP)
+                    LEA         DOLLAR_TAG, A1
+                    MOVE.B      #14,D0
+                    TRAP        #15
+                    MOVEM.L     (SP)+,ALL_REG
+                    RTS
+
+*___________________________________________________________________________________
+
+
+
+*_______________    PRINT FORWARD SLASH   ________________________________________________
+        *PARAMETER NO PARAMETER NEEDED
+        
+PRINT_FORWARD_SLASH     MOVEM.L     ALL_REG,-(SP)
+                        LEA         FORWARD_SLASH_TAG, A1
+                        MOVE.B      #14,D0
+                        TRAP        #15
+                        MOVEM.L     (SP)+,ALL_REG
+                        RTS
 
 
    
@@ -444,13 +834,15 @@ outputAddressLoopEnd
     MOVE.B  #$00,(A1)
     MOVE.L  (SP)+,D6
     LEA     addressOutput,A1
-    MOVE.B  #14,D0
-    TRAP    #15
     
-    LEA     spaces,A1
+    MOVE.L A1,-(SP)
+    LEA    SPACES,A1
     MOVE.B  #14,D0
     TRAP    #15
 
+    MOVE.L  (SP)+,A1
+    MOVE.B  #14,D0
+    TRAP    #15
     RTS
 
 *********************************************************************
@@ -538,7 +930,4 @@ LF  EQU $0A
 
 
 
-*~Font name~Courier New~
-*~Font size~10~
-*~Tab type~1~
-*~Tab size~4~
+
