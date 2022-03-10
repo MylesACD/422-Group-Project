@@ -135,6 +135,9 @@ letsgo
     MOVE.W #$1046, A2
     BSR     OPCODE *test ROR
     
+    LEA empty,A1
+    MOVE.B  #1,(OutputType) * new line  
+    BSR    OUTPUT
 
     MOVE.W #$1048, A2
     BSR     OPCODE *test BGT
@@ -147,7 +150,7 @@ letsgo
     
 
   
-    MOVE.W #$10B4, A2
+    MOVE.W #$1186, A2
     BSR     OPCODE *test RTS
 
 
@@ -740,6 +743,45 @@ and
     
     BRA return    
 
+bcc
+    CLR D3
+    MOVE.W (A2), D3
+    
+    ANDI.W #%0000111100000000,D3 * bits [11-8]
+    LSR.W #8,D3
+    CMP #%1110, D3 * BGT compare
+    BEQ bgt
+    CMP #%1111, D3 * BLE compare
+    BEQ ble
+    CMP #%0111, D3 * BEQ compare
+    BEQ beq
+    BRA data * goto data if doesn't work
+
+bgt
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    bgtout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+
+ble
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    bleout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+beq
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    beqout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
 
 bra
     MOVE.B  #4,(OutputType)
@@ -759,8 +801,7 @@ data
     BSR    OUTPUT
     
     MOVE.B  #3,(OutputType)       
-    BSR    OUTPUT *TODO fix data output type
-
+    BSR    OUTPUT     
     BRA return
 
 
@@ -1660,6 +1701,10 @@ asrout    DC.B  'ASR',0
 rolout    DC.B  'ROL',0
 rorout    DC.B  'ROR',0
 
+bgtout DC.B     'BGT',0
+bleout DC.B     'BLE',0
+beqout DC.B     'BEQ',0
+
 jsrout DC.B     'JSR',0
 rtsout DC.B     'RTS',CR,LF,0
 braout DC.B     'BRA',0
@@ -1679,6 +1724,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
