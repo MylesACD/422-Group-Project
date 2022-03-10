@@ -203,6 +203,8 @@ long
     BRA return
     
 nop 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
     LEA    nopout,A1        
     MOVE.B  #1,(OutputType)
     BSR     OUTPUT
@@ -222,7 +224,9 @@ move
     CMP #%0000000001000000,D3 * if only the sixth bit is set then instruction is MOVEA
     BEQ movea
     
- 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    moveout,A1     *print the type
     MOVE.B  #1,(OutputType)   
     BSR    OUTPUT
@@ -240,6 +244,9 @@ move
     
     
 movea
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    moveaout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -255,13 +262,19 @@ movea
     BRA return
     
 moveq
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    moveqout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
 
     
-movem    
+movem
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+    
     LEA    movemout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -275,7 +288,10 @@ movem
 
     
     BRA return
-sub    
+sub 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+   
     LEA    subout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -295,6 +311,9 @@ sub
     
     BRA return
 add
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    addout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -316,20 +335,29 @@ add
 
     
 rts
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    rtsout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
     
     
-jsr    
+jsr 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+   
     LEA    jsrout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
     
     
-not   
+not 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+  
     LEA    notout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -350,12 +378,18 @@ not
     BRA return
 
 lea
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    leaout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
     
 or
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    orout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -375,6 +409,9 @@ or
     BRA return
     
 and
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    andout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
@@ -395,12 +432,18 @@ and
 
 
 bra
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    braout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
 
 data
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
     LEA    dataout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
