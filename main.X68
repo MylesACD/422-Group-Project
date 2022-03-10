@@ -29,7 +29,8 @@ here
     LEA (A1),A3
     OR.L input1, D5
     MOVEM.L D0-D7/A0-A6,-(SP) 
-    
+    AND.B D1,D6
+    ADD.B D3,D4
 * calls-------------------------------------------------------
     MOVE.W #$100C, A2
     BSR     OPCODE * test MOVE.B
@@ -56,9 +57,6 @@ here
     MOVE.W #$1020, A2
     BSR     OPCODE *test JSR
     
-    MOVE.W #$10A0, A2
-    BSR     OPCODE *test RTS
-    
     MOVE.W #$1026, A2
     BSR     OPCODE *test NOT
     
@@ -71,8 +69,15 @@ here
     MOVE.W #$1030, A2
     BSR     OPCODE *test OR
 
+    MOVE.W #$1034, A2
+    BSR     OPCODE *test AND
+    
+    MOVE.W #$1036, A2
+    BSR     OPCODE *test ADD
 
 
+    MOVE.W #$10B4, A2
+    BSR     OPCODE *test RTS
 
 
 * calls---------------------------------------------------------    
@@ -138,6 +143,14 @@ OPCODE:
     
     CMP #%1001, D3 *SUB compare
     BEQ sub
+    
+    CMP #%1100, D3 *AND compare
+    BEQ and
+    
+    CMP #%1101, D3 *ADD compare
+    BEQ add
+
+    
     
     Move.W (A2), D3 * reset D3
     ANDI.W #%1111101110000000,D3  * the bits relevant to MOVEM
@@ -281,6 +294,25 @@ sub
     BSR byte *otherwise branch to byte
     
     BRA return
+add
+    LEA    addout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
 
     
 rts
@@ -342,6 +374,24 @@ or
     
     BRA return
     
+and
+    LEA    andout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+        
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return    
 
 
 bra
@@ -1113,11 +1163,24 @@ moveqout DC.B   'MOVEQ',0
 movemout DC.B   'MOVEM',0
 
 subout    DC.B  'SUB',0
+addout    DC.B 'ADD',0
+addaout    DC.B 'ADD',0
+addqout    DC.B 'ADD',0
+
+leaout    DC.B  'LEA',0
 
 notout    DC.B  'NOT',0
 orout DC.B     'OR',0
+andout DC.B     'AND',0
 
-leaout    DC.B  'LEA',0
+
+lslout    DC.B  'LSL',0
+lsrout    DC.B  'LSR',0
+aslout    DC.B  'ASL',0
+asrout    DC.B  'ASR',0
+
+rolout    DC.B  'ROL',0
+rorout    DC.B  'ROR',0
 
 jsrout DC.B     'JSR',0
 rtsout DC.B     'RTS',CR,LF,0
