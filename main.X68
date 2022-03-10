@@ -39,8 +39,12 @@ here
     ASR.W #5,D2
     ROL.B #5,D3
     ROR.W #4,D3
-
-
+    BGT letsgo
+    CMP #4,D3 
+    BEQ letsgo
+    BLE letsgo
+   
+letsgo
     
 * calls-------------------------------------------------------
     MOVE.W #$100C, A2
@@ -130,7 +134,17 @@ here
 
     MOVE.W #$1046, A2
     BSR     OPCODE *test ROR
+    
 
+    MOVE.W #$1048, A2
+    BSR     OPCODE *test BGT
+
+    MOVE.W #$1050, A2
+    BSR     OPCODE *test BLE
+    
+    MOVE.W #$1054, A2
+    BSR     OPCODE *test BEQ
+    
 
   
     MOVE.W #$10B4, A2
@@ -206,6 +220,10 @@ OPCODE:
     
     CMP #%0101, D3 *ADDQ compare
     BEQ addq
+    
+    CMP #%0110, D3 *BCC compare, BGT, BLE, and BEQ are branched from internally
+    BEQ bcc
+    
 
     Move.W (A2), D3 * reset D3
     ANDI.W #%1111000100011000,D3  * the bits relevant to LSL
@@ -273,11 +291,16 @@ OPCODE:
     ANDI.W #%1111000111000000,D3 * the bits relevant to LEA
     CMP #%0100000111000000,D3 *LEA compare
     BEQ lea
+    
+    
+    
+    
+    
+
 
    
     Move.W (A2), D3 * reset D3
     LSR #8,D3 * make D3 only contain the first 8 bits of the instruction
- 
     CMP #%01100000, D3 *BRA compare
     BEQ bra
     
