@@ -24,6 +24,9 @@ userInputStart
 
     BRA here
 here
+    JSR there
+
+
     MOVE.W #$100C, A2
     BSR     OPCODE * test MOVE.B
 
@@ -41,14 +44,21 @@ here
     
     
     MOVE.W #$101A, A2
-    BSR     OPCODE *test MOVEA.L
-
+    BSR     OPCODE *test SUB.L
     
-    
-    
-     
     MOVE.W #$101C, A2
     BSR     OPCODE *test BRA
+    
+    MOVE.W #$1020, A2
+    BSR     OPCODE *test JSR
+    
+    MOVE.W #$1072, A2
+    BSR     OPCODE *test RTS
+
+    
+    BRA userInputRepeat
+there    
+    RTS
 * end testing--------------------------------------------------------------
  
 
@@ -102,11 +112,18 @@ OPCODE:
     CMP #%1001, D3 *SUB compare
     BEQ sub
     
-    CMP #$4E75, (A2) * RTS compare, this has to be done before JSR and LEA
+    CMP #$4E75, (A2) * RTS compare, this has to be done before JSR, LEA, and NOT
     BEQ rts
     
     Move.W (A2), D3 * reset D3
-    LSR #8,D3 * make D3 only contain the first 8 bits of the instruction as its LSig word
+    LSR #6,D3 * make D3 only contain the first 10 bits of the instruction
+        
+    CMP #%0000000100111010, D3 * JSR compare, this has to be done before NOT and LEA
+    BEQ jsr
+
+    
+    Move.W (A2), D3 * reset D3
+    LSR #8,D3 * make D3 only contain the first 8 bits of the instruction
     
     CMP #%01100000, D3 *BRA compare
     BEQ bra
@@ -213,6 +230,13 @@ sub
     
 rts
     LEA    rtsout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+    
+    
+jsr    
+    LEA    jsrout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
@@ -987,6 +1011,7 @@ moveqout DC.B   'MOVEQ',0
 
 subout    DC.B  'SUB',0
 
+jsrout DC.B     'JSR',0
 rtsout DC.B     'RTS',0
 braout DC.B     'BRA',0
 
@@ -1005,6 +1030,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
