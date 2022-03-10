@@ -31,6 +31,17 @@ here
     MOVEM.L D0-D7/A0-A6,-(SP) 
     AND.B D1,D6
     ADD.B D3,D4
+    ADDA.W A1,A2
+    ADDQ.L #7,D1
+    LSL.B #3,D1
+    lSR.W #2,D1
+    ASL.B #6,D2
+    ASR.W #5,D2
+    ROL.B #5,D3
+    ROR.W #4,D3
+
+
+    
 * calls-------------------------------------------------------
     MOVE.W #$100C, A2
     BSR     OPCODE * test MOVE.B
@@ -57,6 +68,12 @@ here
     MOVE.W #$1020, A2
     BSR     OPCODE *test JSR
     
+    
+    LEA empty,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+
+    
     MOVE.W #$1026, A2
     BSR     OPCODE *test NOT
     
@@ -66,16 +83,56 @@ here
     MOVE.W #$102A, A2
     BSR     OPCODE *test OR
     
+     LEA empty,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+
+    
     MOVE.W #$1030, A2
-    BSR     OPCODE *test OR
+    BSR     OPCODE *test MOVEM
 
     MOVE.W #$1034, A2
     BSR     OPCODE *test AND
     
     MOVE.W #$1036, A2
     BSR     OPCODE *test ADD
+    
+    LEA empty,A1
+    MOVE.B  #1,(OutputType) * new line  
+    BSR    OUTPUT
+
+    MOVE.W #$1038, A2
+    BSR     OPCODE *test ADDA
+    
+    MOVE.W #$103A, A2
+    BSR     OPCODE *test ADDQ
+    
+    MOVE.W #$103C, A2
+    BSR     OPCODE *test LSL
+
+    MOVE.W #$103E, A2
+    BSR     OPCODE *test LSR
+    
+    MOVE.W #$1040, A2
+    BSR     OPCODE *test ASL
+    
+    LEA empty,A1
+    MOVE.B  #1,(OutputType) * new line  
+    BSR    OUTPUT
 
 
+    MOVE.W #$1042, A2
+    BSR     OPCODE *test ASR
+    
+    
+    MOVE.W #$1044, A2
+    BSR     OPCODE *test ROL
+
+    MOVE.W #$1046, A2
+    BSR     OPCODE *test ROR
+
+
+  
     MOVE.W #$10B4, A2
     BSR     OPCODE *test RTS
 
@@ -147,14 +204,57 @@ OPCODE:
     CMP #%1100, D3 *AND compare
     BEQ and
     
-    CMP #%1101, D3 *ADD compare
-    BEQ add
+    CMP #%0101, D3 *ADDQ compare
+    BEQ addq
+
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to LSL
+    CMP #%1110000100001000,D3 * LSL compare
+    BEQ lsl
+
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to LSR
+    CMP #%1110000000001000,D3 * LSR compare
+    BEQ lsr
+    
+    
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to ASL
+    CMP #%1110000100000000,D3 * ASL compare
+    BEQ asl
+
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to ASR
+    CMP #%1110000000000000,D3 * ASR compare
+    BEQ asr
+
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to ASL
+    CMP #%1110000100011000,D3 * ROL compare
+    BEQ rol
+
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000100011000,D3  * the bits relevant to ASR
+    CMP #%1110000000011000,D3 * ROR compare
+    BEQ ror
 
     
     
     Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000011000000,D3  * the bits relevant to ADDA
+    CMP #%1101000011000000,D3 * ADDA compare, must be done before add
+    BEQ adda
+    
+    Move.W (A2), D3 
+    LSR #8,D3 * make D3 only contain the first 4 bits of the instruction as its LSig word
+    LSR #4,D3
+    CMP #%1101, D3 *ADD compare
+    BEQ add
+
+  
+    Move.W (A2), D3 * reset D3
     ANDI.W #%1111101110000000,D3  * the bits relevant to MOVEM
-    CMP #%100100010000000,D3 *MOVEM compare
+    CMP #%0100100010000000,D3 * MOVEM compare
     BEQ movem
 
     
@@ -310,6 +410,31 @@ sub
     BSR byte *otherwise branch to byte
     
     BRA return
+    
+addq 
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+   
+    LEA    addqout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return    
+    
+    
 add
     MOVE.B  #4,(OutputType)
     BSR     OUTPUT
@@ -331,6 +456,29 @@ add
     BEQ word
     BSR byte *otherwise branch to byte
     
+    BRA return
+
+adda
+
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    addaout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000100000000, D2 * set to only the size bit
+    LSR #8,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #1,D2 *if the size is 1 branch to long
+    BEQ long
+    cmp #0,D2 *if the size is 0 branch to word
+    BEQ word
+       
     BRA return
 
     
@@ -376,6 +524,145 @@ not
 
     
     BRA return
+
+lsl
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    lslout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+
+lsr
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    lsrout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+asl
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    aslout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+
+asr
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    asrout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+    
+rol
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    rolout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+
+ror
+    MOVE.B  #4,(OutputType)
+    BSR     OUTPUT
+
+    LEA    rorout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+    
+    
 
 lea
     MOVE.B  #4,(OutputType)
@@ -1332,8 +1619,8 @@ movemout DC.B   'MOVEM',0
 
 subout    DC.B  'SUB',0
 addout    DC.B 'ADD',0
-addaout    DC.B 'ADD',0
-addqout    DC.B 'ADD',0
+addaout    DC.B 'ADDA',0
+addqout    DC.B 'ADDQ',0
 
 leaout    DC.B  'LEA',0
 
@@ -1369,6 +1656,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
