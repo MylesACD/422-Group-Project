@@ -15,7 +15,7 @@ userInputStart
     BSR     USERINPUT
     
 *testing purposes----------------------------------------------------
-    MOVE.B D2, D6
+    MOVE.B #$04, D6
     MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
@@ -228,8 +228,7 @@ data
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
-    LEA (A2), A1
-    MOVE.B  #4,(OutputType)       
+    MOVE.B  #3,(OutputType)       
     BSR    OUTPUT *TODO fix data output type
 
     BRA return
@@ -790,7 +789,7 @@ PRINT_FORWARD_SLASH     MOVEM.L     ALL_REG,-(SP)
 *What it does: Outputs parts of opword, moves to new screen if needed
 *Registers: Uses register A1, D0,
 *A1: Used to store messages and single char
-*Paramemeters: A1
+*Paramemeters: A1, A2
 *A1: Stores what should be used
 *********************************************************************  
 
@@ -975,6 +974,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
