@@ -563,6 +563,131 @@ MOVE_MOVEA_EA   MOVE.W  (A2),D1
                 BSR print_NEWLINE
                 
                 RTS
+*should be for the following opcodes- MOVEA, ADD, SUB, AND, OR 
+EA_GROUP1     MOVE.W  (A2),D1                 * Prepare to capture register field
+        MOVE.W  (A2),D2                 * Prepare to capture EA field
+        ANDI.B  #BITS0TO5_MASK,D1       * Isolate the source EA bits
+        
+        ANDI.W  #BITS9TO11_MASK,D2      * Isolate the source EA bits
+        MOVE.B  #9,D3                   * Prepare shift count
+        LSR.W   D3,D2                   * Move register bits right
+        ANDI.B  #%11000111,D2           * Set EA mode
+        MOVE.W  (A2),D3
+        BTST    #8,D3                   * Check opmode
+        BEQ     EA1_MODE_ZERO           * Check opmode
+        
+EA1_MODE_ONE    MOVE.W  D1,D5           * Set EA as destination
+                MOVE.W  D2,D6           * Set register as source
+                BRA EA1_END             * Complete subroutine
+        
+EA1_MODE_ZERO   MOVE.W  D1,D6           * Set EA as source
+                MOVE.W  D2,D5           * Set register as destination
+
+EA1_END         ORI.B   #BITS7TO8_MASK,D6       * Populate the S and D bits
+                MOVE.B  D6,D1               * Pass source into subroutine
+                JSR     CHECK_VALID_EA
+                MOVE.B  D5,D1               * Pass destination into subroutine
+                JSR     CHECK_VALID_EA
+                BSR print_EA
+                BSR print_NEWLINE
+
+                RTS
+*should be for opcode LSL LSR ASL ASR ROL ROR but for register shifts
+EA_GROUP2             MOVE.W  (A2),D6         * Prepare to capture source EA
+                ANDI.W  #BITS9TO11_MASK,D6      * Isolate the source EA bits
+                MOVE.B  #9,D3                   * Prepare shift count
+                LSR.W   D3,D6                   * Move register bits right
+                MOVE.W  (A2),D3
+                BTST    #5,D3           * Check whether shift count is immediate
+                BEQ     EA2_IMMEDIATE
+ 
+EA2_REGISTER    ORI.B   #%11000000,D6   * Set S and D bits
+                BRA     EA2_END         * Complete subroutine
+                
+EA2_IMMEDIATE   MOVE.B  #10,D7          * Prepare to pass immediate data to print subroutine
+                JSR     FORMAT_IMMEDIATE_DATA
+                
+EA2_END         MOVE.W  (A2),D5         * Prepare to capture destination EA
+                AND.B   #%00000111,D5
+                MOVE.B  D6,D1               * Pass source into subroutine
+                JSR     CHECK_VALID_EA
+                MOVE.B  D5,D1               * Pass destination into subroutine
+                JSR     CHECK_VALID_EA
+                BSR print_EA
+                BSR print_NEWLINE
+                RTS   
+
+
+*should be for opcode LSL LSR ASL ASR ROL ROR but for register shifts
+EA_GROUP3     MOVE.W  (A2),D6
+        ANDI.B  #BITS0TO5_MASK,D6       * Isolate the source EA bits
+        ORI.B   #%10000000,D6
+        MOVE.B  D6,D1               * Pass source into subroutine
+        JSR     CHECK_VALID_EA
+        BSR print_EA
+        BSR print_NEWLINE
+        RTS
+
+*should be for LEA and ADDA(SHOULD WORK BETTER THEN EA GROUP 1)
+EA_GROUP4     MOVE.W  (A2),D1         
+        ANDI.B  #BITS0TO5_MASK,D1       * Isolate the source EA bits
+        ORI.B   #BITS7TO8_MASK,D1       * Populate the S and D bits
+        MOVE.B  D1,D6                   * Pass source EA to print subroutine
+        MOVE.W  (A2),D1         
+        
+        ANDI.W  #BITS9TO11_MASK,D1   * Isolate the destination register number
+        MOVE.B  #9,D2                   * Prepare shift count
+        LSR.W   D2,D1                   * Move register bits right
+        ANDI.B  #%11001111,D1           * Set destination mode
+        ORI.B   #%00001000,D1           * Set destination mode
+        MOVE.B  D1,D5                   * Pass destination EA to print subroutine
+        MOVE.B  D6,D1               * Pass source into subroutine
+        JSR     CHECK_VALID_EA
+        MOVE.B  D5,D1               * Pass destination into subroutine
+        JSR     CHECK_VALID_EA
+        BSR print_EA
+        BSR print_NEWLINE
+        RTS
+        
+ADDQ_EA MOVE.W  (A2),D6                 * Prepare source data bits
+        ANDI.W  #BITS9TO11_MASK,D6      * Isolate source data bits
+        MOVE.B  #9,D3                   * Prepare shift count
+        LSR.W   D3,D6                  * Move source data bits right            !---
+        MOVE.W  (A2),D5                 * Prepare destination bits
+        ANDI.B  #BITS0TO5_MASK,D5       * Isolate destination bits
+        JSR     FORMAT_IMMEDIATE_DATA
+        MOVE.B  D6,D1               * Pass source into subroutine
+        JSR     CHECK_VALID_EA
+        MOVE.B  D5,D1               * Pass destination into subroutine
+        JSR     CHECK_VALID_EA
+        RTS                                    !---
+        
+MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          !---
+            AND.W   #$00FF,D6                                                   !---
+            MOVE.W  (A2),D5                 * Prepare destination regiter bits
+            ANDI.W  #BITS9TO11_MASK,D5      * Isolate destination register bits
+            MOVE.B  #9,D3                   * Prepare shift count
+            LSR.W   D3,D5                   * Move destination register bits right
+            MOVE.B  #10,D7
+            MOVE.B  D6,D1               * Pass source into subroutine
+            JSR     CHECK_VALID_EA
+            MOVE.B  D5,D1               * Pass destination into subroutine
+            JSR     CHECK_VALID_EA
+            RTS                                 !---
+
+
+
+
+MOVEM_EA   MOVE.W (A2),D2
+           BTST    #10, D2
+           BEQ     Register_to_memory *IF THE DIRCTION BIT IS 0, 
+          
+           
+                
+*ELSE IT IS  memory-to-register transfers
+
+
+
 
    
 Memory_to_Register LSR.L #3, D2
