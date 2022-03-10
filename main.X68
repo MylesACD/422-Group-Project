@@ -25,8 +25,10 @@ userInputStart
     BRA here
 here
     JSR there
-
-
+    NOT.L (A3)
+    LEA (A1),A3
+    
+* calls-------------------------------------------------------
     MOVE.W #$100C, A2
     BSR     OPCODE * test MOVE.B
 
@@ -52,10 +54,18 @@ here
     MOVE.W #$1020, A2
     BSR     OPCODE *test JSR
     
-    MOVE.W #$1072, A2
+    MOVE.W #$1086, A2
     BSR     OPCODE *test RTS
-
     
+    MOVE.W #$1026, A2
+    BSR     OPCODE *test NOT
+    
+    MOVE.W #$1028, A2
+    BSR     OPCODE *test LEA
+
+
+
+* calls---------------------------------------------------------    
     BRA userInputRepeat
 there    
     RTS
@@ -94,13 +104,19 @@ userInputRepeat
 **********************************************************
 OPCODE:
     CLR D3
+    
+    CMP #$4E75, (A2) * RTS compare, this has to be done before JSR, LEA, and NOT
+    BEQ rts
+    
+    CMP #$4E71, (A2) *NOP compare
+    BEQ nop
+    
     Move.W (A2), D3 
     LSR #8,D3 * make D3 only contain the first 4 bits of the instruction as its LSig word
     LSR #4,D3
     
     
-    CMP #$4E71, (A2) *NOP compare
-    BEQ nop
+    
     
     
     CMP #%0011, D3 *MOVE and MOVEA compare
@@ -112,19 +128,27 @@ OPCODE:
     CMP #%1001, D3 *SUB compare
     BEQ sub
     
-    CMP #$4E75, (A2) * RTS compare, this has to be done before JSR, LEA, and NOT
-    BEQ rts
+    
     
     Move.W (A2), D3 * reset D3
     LSR #6,D3 * make D3 only contain the first 10 bits of the instruction
-        
     CMP #%0000000100111010, D3 * JSR compare, this has to be done before NOT and LEA
     BEQ jsr
 
+    Move.W (A2), D3 * reset D3
+    LSR #8,D3 * make D3 only contain the first 8 bits
+    CMP #%01000110,D3 * NOT compare, this has to be done before LEA
+    BEQ not
     
     Move.W (A2), D3 * reset D3
+    ANDI.W #%1111000111000000,D3 * the bits relevant to LEA
+    CMP #%0100000111000000,D3 *LEA compare
+    BEQ lea
+
+   
+    Move.W (A2), D3 * reset D3
     LSR #8,D3 * make D3 only contain the first 8 bits of the instruction
-    
+ 
     CMP #%01100000, D3 *BRA compare
     BEQ bra
     
@@ -237,6 +261,33 @@ rts
     
 jsr    
     LEA    jsrout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    BRA return
+    
+    
+not   
+    LEA    notout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+
+    
+    BRA return
+
+lea
+    LEA    leaout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
@@ -1010,6 +1061,9 @@ moveqout DC.B   'MOVEQ',0
 
 
 subout    DC.B  'SUB',0
+
+notout    DC.B  'NOT',0
+leaout    DC.B  'LEA',0
 
 jsrout DC.B     'JSR',0
 rtsout DC.B     'RTS',0
