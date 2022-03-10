@@ -13,12 +13,15 @@ START:                           *Main
     MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
-    MOVE.B #$12, D6
+    
+*testing purposes----------------------------------------------------
+    MOVE.B D2, D6
     MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
     CMP D1,D3
-    
+    SUB.L D2, D6
+
     BRA here
 here
     MOVE.W #$100C, A2
@@ -35,13 +38,22 @@ here
     
     MOVE.W #$1018, A2
     BSR     OPCODE *test DATA
-     
-    MOVE.W #$101A, A2
-    BSR     OPCODE *test BRA
-     
     
+    
+    MOVE.W #$101A, A2
+    BSR     OPCODE *test MOVEA.L
 
+    
+    
+    
+     
+    MOVE.W #$101C, A2
+    BSR     OPCODE *test BRA
+* end testing--------------------------------------------------------------
+ 
 
+     
+  
 
     
 userInputRepeat
@@ -67,7 +79,7 @@ userInputRepeat
 *A2: parameter with instruction address
 *D0: printing
 *D3: used for determing the instruction, mostly shifts
-*D4: used for determing the size
+*D2: used for determing the size
 *Paramemeters: A2 the memory address to decode from
 **********************************************************
 OPCODE:
@@ -86,12 +98,11 @@ OPCODE:
     
     CMP #%0111, D3 *MOVEQ compare
     BEQ moveq
-
-
-
-
-
-    CMP #$4E75, (A2) * RTS compare
+    
+    CMP #%1001, D3 *SUB compare
+    BEQ sub
+    
+    CMP #$4E75, (A2) * RTS compare, this has to be done before JSR and LEA
     BEQ rts
     
     Move.W (A2), D3 * reset D3
@@ -178,6 +189,28 @@ moveq
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
+    
+sub    
+    LEA    subout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+
+    
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+
+    
 rts
     LEA    rtsout,A1
     MOVE.B  #1,(OutputType)       
@@ -195,11 +228,9 @@ data
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
-    
-    MOVE.W (A2), D3
-    MOVE.L D3, A1
-    MOVE.B  #3,(OutputType)       
-    BSR    OUTPUT
+    LEA (A2), A1
+    MOVE.B  #4,(OutputType)       
+    BSR    OUTPUT *TODO fix data output type
 
     BRA return
 
@@ -921,12 +952,16 @@ OutputType      DC.B    0      To track what type is being output
 nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
 moveaout DC.B      'MOVEA',0
-moveqout DC.B   'MOVEQ'
+moveqout DC.B   'MOVEQ',0
 
-rtsout DC.B     'RTS',CR,LF,0
-braout DC.B     'BRA',CR,LF,0
+
+subout    DC.B  'SUB',0
+
+rtsout DC.B     'RTS',0
+braout DC.B     'BRA',0
 
 dataout DC.B    'DATA   ',0
+
 
 
 byteout  DC.B    '.B    ',0
@@ -940,6 +975,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
