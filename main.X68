@@ -27,6 +27,8 @@ here
     JSR there
     NOT.L (A3)
     LEA (A1),A3
+    OR.L input1, D5
+    MOVEM.L D0-D7/A0-A6,-(SP) 
     
 * calls-------------------------------------------------------
     MOVE.W #$100C, A2
@@ -54,7 +56,7 @@ here
     MOVE.W #$1020, A2
     BSR     OPCODE *test JSR
     
-    MOVE.W #$1086, A2
+    MOVE.W #$10A0, A2
     BSR     OPCODE *test RTS
     
     MOVE.W #$1026, A2
@@ -62,6 +64,14 @@ here
     
     MOVE.W #$1028, A2
     BSR     OPCODE *test LEA
+    
+    MOVE.W #$102A, A2
+    BSR     OPCODE *test OR
+    
+    MOVE.W #$1030, A2
+    BSR     OPCODE *test OR
+
+
 
 
 
@@ -116,7 +126,8 @@ OPCODE:
     LSR #4,D3
     
     
-    
+    CMP #%1000, D3 * OR compare
+    BEQ or
     
     
     CMP #%0011, D3 *MOVE and MOVEA compare
@@ -128,6 +139,11 @@ OPCODE:
     CMP #%1001, D3 *SUB compare
     BEQ sub
     
+    Move.W (A2), D3 * reset D3
+    ANDI.W #%1111101110000000,D3  * the bits relevant to MOVEM
+    CMP #%100100010000000,D3 *MOVEM compare
+    BEQ movem
+
     
     
     Move.W (A2), D3 * reset D3
@@ -230,7 +246,22 @@ moveq
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
+
     
+movem    
+    LEA    movemout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+    MOVE.W (A2),D2
+    ANDI.W #%0000000001000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+    CMP #1, D2 * if the size is 1 branch to long
+    BEQ long
+    BSR word * otherwise branch to word
+
+    
+    BRA return
 sub    
     LEA    subout,A1
     MOVE.B  #1,(OutputType)       
@@ -291,6 +322,27 @@ lea
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     BRA return
+    
+or
+    LEA    orout,A1
+    MOVE.B  #1,(OutputType)       
+    BSR    OUTPUT
+    
+        
+    MOVE.W (A2),D2
+    ANDI.W #%0000000011000000, D2 * set to only the size bits
+    LSR #6,D2 * make the size bits the first two bits in D2 LSig word
+
+    *now to print size  
+    cmp #2,D2 *if the size is 2 branch to long
+    BEQ long
+    cmp #1,D2 *if the size is 1 branch to word
+    BEQ word
+    BSR byte *otherwise branch to byte
+    
+    BRA return
+    
+
 
 bra
     LEA    braout,A1
@@ -1058,15 +1110,17 @@ nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
 moveaout DC.B      'MOVEA',0
 moveqout DC.B   'MOVEQ',0
-
+movemout DC.B   'MOVEM',0
 
 subout    DC.B  'SUB',0
 
 notout    DC.B  'NOT',0
+orout DC.B     'OR',0
+
 leaout    DC.B  'LEA',0
 
 jsrout DC.B     'JSR',0
-rtsout DC.B     'RTS',0
+rtsout DC.B     'RTS',CR,LF,0
 braout DC.B     'BRA',0
 
 dataout DC.B    'DATA   ',0
