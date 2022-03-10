@@ -844,14 +844,45 @@ outputSize
     TRAP    #15
     RTS
 outputData
-    MOVE.L A1,-(SP)
-    LEA    SPACES,A1
+    MOVE.L   #$800,A3
+    MOVE.W  (A2),(A3)
+    MOVE.L  D6,-(SP)
+    MOVE.B  #0,D0
+    LEA     addressOutput,A1
+
+outputDataLoop
+*check if loop has run 4 times
+    CMP.B   #2,D0
+    BEQ     outputDataLoopEnd
+    *Grab byte from address, dont increment
+    MOVE.B  (A3),D6
+    *LSR to isolate left bit
+    LSR.B   #4,D6
+    *Call converthtoa
+    BSR     CONVERTHTOA
+    MOVE.B  D6,(A1)+   
+    *Grab bye from address, increment
+    MOVE.B  (A3)+,D6
+    *AND Mask second digit
+    AND.B   #$0F,D6
+    BSR     CONVERTHTOA
+    MOVE.B  D6,(A1)+
+    ADD.B   #1,D0
+    BRA     outputDataLoop
+    
+outputDataLoopEnd
+    MOVE.B  #$00,(A1)
+    MOVE.L  (SP)+,D6
+    LEA     addressOutput,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    
+    LEA     NEWLINE,A1
     MOVE.B  #14,D0
     TRAP    #15
 
-    MOVE.L  (SP)+,A1
-    MOVE.B  #14,D0
-    TRAP    #15     
+    RTS
+ 
     
 outputAddress
     MOVE.L  #$800,A3
