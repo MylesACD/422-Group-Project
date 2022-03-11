@@ -13,6 +13,14 @@ START:                           *Main
     MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
+    MOVE.L  (input1),A2
+*memoryLoop
+*    BSR     OPCODE
+*    ADD.L   #2,A2
+*    CMP.B   A2,(input2)
+*    BGE     userInputRepeat
+*    BRA     memoryLoop
+
     
 *testing purposes----------------------------------------------------
     MOVE.B #$04, D6
@@ -893,9 +901,20 @@ firstInput
     BEQ     throwInput1CharError
 
     
-    AND.L   #$00FFFFFF,D5
+    AND.L   #$00FFFFFF,D5           
+    MOVE.L  D5,D6
+    AND.L   #$0000000F,D6
+    AND.B   #%0001,D6
+    CMP.B   #%0001,D6
+    BEQ     oddnumber1
     MOVE.L  D5,input1               Moves result into input 1 memory location
     CLR.L   D5                      Clears D5 for future use
+    BRA     secondInput
+    
+oddnumber1    
+    ADD.B   #1,D5
+    MOVE.L  D5,input1
+    CLR.L   D5
     BRA     secondInput
     
 throwInput1CharError
@@ -932,12 +951,24 @@ secondInput
     AND.L   #$00FFFFFF,D5
     CMP.L   (input1),D5
     BLT     throwInput2LowerError
-    
+    MOVE.L  D5,D6
+    AND.L   #$0000000F,D6
+    AND.B   #%0001,D6
+    CMP.B   #%0001,D6
+    BEQ     oddnumber2
+
     
     
     MOVE.L  D5,input2               Moves result into input 2 memory location
     CLR.L   D5                      Clears D5 for future use
-    RTS    
+    RTS
+
+oddnumber2
+    ADD.B   #1,D5
+    MOVE.L  D5,input2
+    CLR.L   D5
+    RTS
+
     
 throwInput2CharError
     LEA     INPUTERRORBADCHAR,A1    
@@ -959,6 +990,7 @@ throwInput2LowerError
     ADD.B   #3,(LineCounter)
     
     BRA     secondInput
+
 
 
 **********************************************************
