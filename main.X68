@@ -326,8 +326,7 @@ long
     LEA    longout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
-    BRA return
-    RTS
+       RTS
 nop 
     MOVE.B  #4,(OutputType)
     BSR     OUTPUT
@@ -335,7 +334,6 @@ nop
     MOVE.B  #1,(OutputType)
     BSR     OUTPUT
     BRA return
-    RTS
     
 move
     * put the size of the instruction into D2 to use later
@@ -1754,6 +1752,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
