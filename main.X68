@@ -189,6 +189,7 @@ userInputRepeat
 *D0: printing
 *D3: used for determing the instruction, mostly shifts
 *D2: used for determing the size
+*D4: used for passing size to SIZE
 *Paramemeters: A2 the memory address to decode from
 **********************************************************
 OPCODE:
@@ -312,21 +313,45 @@ OPCODE:
     
 return
     RTS
+    
+SIZE:
+    * standarize the size indicator, each OPCODE will decide if its size 2,4,8 based on its specific handling of bits
+    CMP #2, D2 *byte is 2
+    BRA byte
+    CMP #4, D2 *word is 4
+    BRA word
+    CMP #8, D2 *long is 8
+    BRA long
+
+    
 byte
     LEA    byteout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
-    RTS
+    BRA     endsize
 word
     LEA    wordout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT
-    RTS
+    BRA     endsize
 long
     LEA    longout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
-       RTS
+    BRA     endsize
+    
+    
+endsize    
+    RTS        
+
+
+l
+
+w
+
+b
+    
+    
 nop 
     MOVE.B  #4,(OutputType)
     BSR     OUTPUT
@@ -358,16 +383,16 @@ move
     
     *now to print size  
     cmp #2,D2 *if the size is 2 branch to long
-    BEQ long
+    BEQ l
     cmp #3,D2 *if the size is 3 branch to word
-    BEQ word
+    BEQ w
     cmp #1,D2 * if the size is 1 branch to byte
-    BEQ byte
-  
+    BEQ b   
+    
+    BSR SIZE
     BSR MOVE_MOVEA_EA
     
     BRA return
-    
     
 movea
     MOVE.B  #4,(OutputType)
@@ -1744,6 +1769,7 @@ dataout DC.B    'DATA   ',0
 byteout  DC.B    '.B    ',0
 wordout  DC.B    '.W    ',0
 longout  DC.B    '.L    ',0
+nosizeout DC.B   '       ',0
 
 empty    DC.B    '',CR,LF,0
 
@@ -1752,6 +1778,8 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
+
 
 
 
