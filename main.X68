@@ -13,13 +13,13 @@ START:                           *Main
     MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
-    *MOVE.L  (input1),A2
+    LEA     input1,A2
 *memoryLoop
-*    BSR     OPCODE
-*    ADD.L   #2,A2
-*    CMP.B   A2,(input2)
-*    BGE     userInputRepeat
-*    BRA     memoryLoop
+   * BSR     OPCODE
+   * ADD.L   #2,A2
+    *CMP.B   A2,(input2)
+    *BGE     userInputRepeat
+    *BRA     memoryLoop
 
     
 *testing purposes----------------------------------------------------
@@ -55,29 +55,29 @@ here
 letsgo
     
 * calls-------------------------------------------------------
-    MOVE.W #$100C, A2
+    MOVE.W #$1012, A2
     BSR     OPCODE * test MOVE.B
 
-    MOVE.W #$1010, A2
+    MOVE.W #$1016, A2
     BSR     OPCODE * test MOVEA.W
     
-    MOVE.W #$1014, A2
+    MOVE.W #$101A, A2
     BSR     OPCODE * test MOVEQ
    
-    MOVE.W #$1016, A2
+    MOVE.W #$101C, A2
     BSR     OPCODE *test MOVEA.L
     
-    MOVE.W #$1018, A2
+    MOVE.W #$101E, A2
     BSR     OPCODE *test DATA
     
     
-    MOVE.W #$101A, A2
+    MOVE.W #$1020, A2
     BSR     OPCODE *test SUB.L
     
-    MOVE.W #$101C, A2
+    MOVE.W #$1022, A2
     BSR     OPCODE *test BRA
     
-    MOVE.W #$1020, A2
+    MOVE.W #$1026, A2
     BSR     OPCODE *test JSR
     
     
@@ -86,13 +86,13 @@ letsgo
     BSR    OUTPUT
 
     
-    MOVE.W #$1026, A2
+    MOVE.W #$102C, A2
     BSR     OPCODE *test NOT
     
-    MOVE.W #$1028, A2
+    MOVE.W #$102E, A2
     BSR     OPCODE *test LEA
     
-    MOVE.W #$102A, A2
+    MOVE.W #$1030, A2
     BSR     OPCODE *test OR
     
      LEA empty,A1
@@ -100,32 +100,32 @@ letsgo
     BSR    OUTPUT
 
     
-    MOVE.W #$1030, A2
+    MOVE.W #$1036, A2
     BSR     OPCODE *test MOVEM
 
-    MOVE.W #$1034, A2
+    MOVE.W #$103A, A2
     BSR     OPCODE *test AND
     
-    MOVE.W #$1036, A2
+    MOVE.W #$103C, A2
     BSR     OPCODE *test ADD
     
     LEA empty,A1
     MOVE.B  #1,(OutputType) * new line  
     BSR    OUTPUT
 
-    MOVE.W #$1038, A2
+    MOVE.W #$103E, A2
     BSR     OPCODE *test ADDA
     
-    MOVE.W #$103A, A2
+    MOVE.W #$1040, A2
     BSR     OPCODE *test ADDQ
     
-    MOVE.W #$103C, A2
+    MOVE.W #$1042, A2
     BSR     OPCODE *test LSL
 
-    MOVE.W #$103E, A2
+    MOVE.W #$1044, A2
     BSR     OPCODE *test LSR
     
-    MOVE.W #$1040, A2
+    MOVE.W #$1046, A2
     BSR     OPCODE *test ASL
     
     LEA empty,A1
@@ -133,32 +133,32 @@ letsgo
     BSR    OUTPUT
 
 
-    MOVE.W #$1042, A2
+    MOVE.W #$1048, A2
     BSR     OPCODE *test ASR
     
     
-    MOVE.W #$1044, A2
+    MOVE.W #$104A, A2
     BSR     OPCODE *test ROL
 
-    MOVE.W #$1046, A2
+    MOVE.W #$104C, A2
     BSR     OPCODE *test ROR
     
     LEA empty,A1
     MOVE.B  #1,(OutputType) * new line  
     BSR    OUTPUT
 
-    MOVE.W #$1048, A2
+    MOVE.W #$104E, A2
     BSR     OPCODE *test BGT
 
-    MOVE.W #$1050, A2
-    BSR     OPCODE *test BLE
-    
-    MOVE.W #$1054, A2
+    MOVE.W #$1056, A2
     BSR     OPCODE *test BEQ
+    
+    MOVE.W #$105A, A2
+    BSR     OPCODE *test BLE
     
 
   
-    MOVE.W #$1186, A2
+    MOVE.W #$118C, A2
     BSR     OPCODE *test RTS
 
 
@@ -1796,7 +1796,7 @@ addout    DC.B 'ADD',0
 addaout    DC.B 'ADDA',0
 addqout    DC.B 'ADDQ',0
 
-leaout    DC.B  'LEA',0
+leaout    DC.B  'LEA    ',0
 
 notout    DC.B  'NOT',0
 orout DC.B     'OR',0
@@ -1835,6 +1835,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 *~Font name~Courier New~
