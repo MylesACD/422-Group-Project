@@ -13,7 +13,7 @@ START:                           *Main
     MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
-    MOVE.L  (input1),A2
+    *MOVE.L  (input1),A2
 *memoryLoop
 *    BSR     OPCODE
 *    ADD.L   #2,A2
@@ -322,43 +322,31 @@ OPCODE:
 return
     RTS
     
-SIZE:
-    * standarize the size indicator, each OPCODE will decide if its size 2,4,8 based on its specific handling of bits
-    CMP #2, D2 *byte is 2
-    BRA byte
-    CMP #4, D2 *word is 4
-    BRA word
-    CMP #8, D2 *long is 8
-    BRA long
+
 
     
 byte
     LEA    byteout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
-    BRA     endsize
+    MOVE.L (SP),A1 
+    JMP (A1)
+
 word
     LEA    wordout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT
-    BRA     endsize
+    MOVE.L (SP),A1 
+    JMP (A1)
+
 long
     LEA    longout,A1        
     MOVE.B  #2,(OutputType)
-    BSR     OUTPUT 
-    BRA     endsize
+    BSR     OUTPUT
+    MOVE.L (SP),A1 
+    JMP (A1)
     
-    
-endsize    
-    RTS        
-
-
-l
-
-w
-
-b
-    
+     
     
 nop 
     MOVE.B  #4,(OutputType)
@@ -390,16 +378,16 @@ move
     BSR    OUTPUT
     
     *now to print size  
+    PEA op1
+    
     cmp #2,D2 *if the size is 2 branch to long
-    BEQ l
+    BEQ long
     cmp #3,D2 *if the size is 3 branch to word
-    BEQ w
+    BEQ word
     cmp #1,D2 * if the size is 1 branch to byte
-    BEQ b   
-    
-    BSR SIZE
+    BEQ byte   
+op1
     BSR MOVE_MOVEA_EA
-    
     BRA return
     
 movea
@@ -411,13 +399,14 @@ movea
     BSR    OUTPUT
     
     *now to print size  
+    PEA op2
+
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #3,D2 *if the size is 3 branch to word
     BEQ word
-    
+op2
     BSR MOVE_MOVEA_EA
-    
     BRA return
     
 moveq
@@ -439,15 +428,19 @@ movem
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
+    PEA op3
     MOVE.W (A2),D2
     ANDI.W #%0000000001000000, D2 * set to only the size bits
     LSR #6,D2 * make the size bits the first two bits in D2 LSig word
     CMP #1, D2 * if the size is 1 branch to long
     BEQ long
-    BSR word * otherwise branch to word
+    CMP #0, D2 * if the size is 0 branch to long
+    BEQ word
+op3
     BSR MOVEM_EA
-    
     BRA return
+    
+    
 sub 
     MOVE.B  #4,(OutputType)
     BSR     OUTPUT
@@ -463,11 +456,14 @@ sub
 
     
     *now to print size  
+    PEA op4
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte 
+op4
     BSR EA_GROUP1
     BRA return
     
@@ -486,13 +482,15 @@ addq
 
     
     *now to print size  
+    PEA op5
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR ADDQ_EA
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte *otherwise branch to byte
+op5    
+    BSR ADDQ_EA
     BRA return    
     
     
@@ -511,13 +509,15 @@ add
 
     
     *now to print size  
+    PEA op6
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP1
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ word
+op6
+    BSR EA_GROUP1
     BRA return
 
 adda
@@ -536,12 +536,13 @@ adda
 
     
     *now to print size  
+    PEA op7
     cmp #1,D2 *if the size is 1 branch to long
     BEQ long
     cmp #0,D2 *if the size is 0 branch to word
     BEQ word
-        BSR EA_GROUP4
-   
+op7
+    BSR EA_GROUP4
     BRA return
 
     
@@ -552,8 +553,8 @@ rts
     LEA    rtsout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
-        BSR EA_GROUP2
-
+    
+    BSR EA_GROUP2
     BRA return
     
     
@@ -564,8 +565,8 @@ jsr
     LEA    jsrout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
-        BSR EA_GROUP2
-
+    
+    BSR EA_GROUP2
     BRA return
     
     
@@ -582,12 +583,16 @@ not
     LSR #6,D2 * make the size bits the first two bits in D2 LSig word
 
     *now to print size  
+    PEA op8
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+
     
+op8    
     BSR EA_GROUP3
     
     BRA return
@@ -606,14 +611,16 @@ lsl
 
 
     
-    *now to print size  
+    *now to print size 
+    PEA op9 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op9
+    BSR EA_GROUP2
     BRA return
 
 lsr
@@ -630,14 +637,16 @@ lsr
 
 
     
-    *now to print size  
+    *now to print size 
+    PEA op10 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op10
+    BSR EA_GROUP2
     BRA return
 asl
     MOVE.B  #4,(OutputType)
@@ -653,14 +662,16 @@ asl
 
 
     
-    *now to print size  
+    *now to print size 
+    PEA op11 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op11
+    BSR EA_GROUP2
     BRA return
 
 asr
@@ -677,14 +688,16 @@ asr
 
 
     
-    *now to print size  
+     *now to print size 
+    PEA op12 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op12
+    BSR EA_GROUP2
     BRA return
     
 rol
@@ -701,14 +714,16 @@ rol
 
 
     
-    *now to print size  
+   *now to print size 
+    PEA op13 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op13
+    BSR EA_GROUP2
     BRA return
 
 ror
@@ -724,15 +739,16 @@ ror
     LSR #6,D2 * make the size bits the first two bits in D2 LSig word
 
 
-    
-    *now to print size  
+   *now to print size 
+    PEA op14 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
-        BSR EA_GROUP2
-
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op14
+    BSR EA_GROUP2
     BRA return
     
     
@@ -744,8 +760,7 @@ lea
     LEA    leaout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
-        BSR EA_GROUP4
-
+    BSR EA_GROUP4
     BRA return
     
 or
@@ -761,12 +776,15 @@ or
     ANDI.W #%0000000011000000, D2 * set to only the size bits
     LSR #6,D2 * make the size bits the first two bits in D2 LSig word
 
-    *now to print size  
+      *now to print size 
+    PEA op15 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op15    
     BSR EA_GROUP1
     BRA return
     
@@ -783,12 +801,15 @@ and
     ANDI.W #%0000000011000000, D2 * set to only the size bits
     LSR #6,D2 * make the size bits the first two bits in D2 LSig word
 
-    *now to print size  
+    *now to print size 
+    PEA op16 
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
+    cmp #0,D2 *if the size is 0 branch to byte
+    BEQ byte
+op16
     BSR EA_GROUP1
     BRA return    
 
@@ -1810,6 +1831,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
