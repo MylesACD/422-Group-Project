@@ -438,6 +438,7 @@ movem
     BEQ word
 op3
     BSR MOVEM_EA
+    JSR PRINT_MOVEM
     BRA return
     
     
@@ -816,7 +817,7 @@ op16
 bcc
     CLR D3
     MOVE.W (A2), D3
-    
+
     ANDI.W #%0000111100000000,D3 * bits [11-8]
     LSR.W #8,D3
     CMP #%1110, D3 * BGT compare
@@ -825,7 +826,11 @@ bcc
     BEQ ble
     CMP #%0111, D3 * BEQ compare
     BEQ beq
+    CMP #%0000, D3 * BRA compare, *doesn't really go here but it works
+    BEQ bra
+
     BRA data * goto data if doesn't work
+    
 
 bgt
     MOVE.B  #4,(OutputType)
@@ -834,6 +839,7 @@ bgt
     LEA    bgtout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+    BSR PRINT_BRA
     BRA return
 
 ble
@@ -843,6 +849,7 @@ ble
     LEA    bleout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+    BSR PRINT_BRA
     BRA return
 beq
     MOVE.B  #4,(OutputType)
@@ -851,6 +858,7 @@ beq
     LEA    beqout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+    BSR PRINT_BRA
     BRA return
 
 bra
@@ -860,6 +868,7 @@ bra
     LEA    braout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+    BSR PRINT_BRA
     BRA return
 
 data
@@ -1077,9 +1086,9 @@ inputError
 
 *********************************************************************
 *Subroutine: EA
-*What it does: Outputs parts of opword, moves to new screen if needed
-*Registers: Uses register A1, D0,
-*A1: Used to store messages and single char
+*What it does: outputs the ea for a given opword
+*Registers: Uses register A1, D4 , d5 , d6
+*A1: used to store opcode
 *Paramemeters: A1
 *A1: Stores what should be used--++
 *********************************************************************  
@@ -1112,10 +1121,34 @@ MOVE_MOVEA_EA   MOVE.W  (A2),D1
                 JSR     CHECK_VALID_EA
                 MOVE.B  D5,D1               * Pass destination into subroutine
                 JSR     CHECK_VALID_EA
-                BSR print_EA
-                BSR print_NEWLINE
+                JSR     PRINT_EA1
                 
                 RTS
+                
+PRINT_EA1
+                MOVE.B  D6,D4
+                JSR     PRINT_EA                    * PRINT SOURCE EA
+                        
+                BTST    #6,D6                       * CHECKING IF HAS DEST. EA
+                BEQ     PRINT_INSTRUCTION_RETURN    * ONLY ONE EA
+                        
+                JSR     PRINT_COMMA
+                MOVE.B  D5,D4
+                JSR     PRINT_EA                    * PRINT DEST. EA
+                JSR     PRINT_NEWLINE
+                RTS
+PRINT_EA2
+     JSR         PRINT_HASH_SIGN         * #
+     MOVE.B      D6,D1                   * PRINT DECIMAL
+     MOVE.L      #3,D0
+     TRAP        #15
+     JSR         PRINT_COMMA             * ,
+                        
+     MOVE.B      D5,D4
+     JSR         PRINT_EA                * PRINT THE REGISTER
+     JSR         PRINT_NEWLINE
+     RTS                
+
 *should be for the following opcodes- MOVEA, ADD, SUB, AND, OR 
 EA_GROUP1     MOVE.W  (A2),D1                 * Prepare to capture register field
         MOVE.W  (A2),D2                 * Prepare to capture EA field
@@ -1141,8 +1174,7 @@ EA1_END         ORI.B   #BITS7TO8_MASK,D6       * Populate the S and D bits
                 JSR     CHECK_VALID_EA
                 MOVE.B  D5,D1               * Pass destination into subroutine
                 JSR     CHECK_VALID_EA
-                BSR print_EA
-                BSR print_NEWLINE
+                JSR     PRINT_EA1
 
                 RTS
 *should be for opcode LSL LSR ASL ASR ROL ROR but for register shifts
@@ -1166,8 +1198,7 @@ EA2_END         MOVE.W  (A2),D5         * Prepare to capture destination EA
                 JSR     CHECK_VALID_EA
                 MOVE.B  D5,D1               * Pass destination into subroutine
                 JSR     CHECK_VALID_EA
-                BSR print_EA
-                BSR print_NEWLINE
+                JSR     PRINT_EA2
                 RTS   
 
 
@@ -1177,8 +1208,7 @@ EA_GROUP3     MOVE.W  (A2),D6
         ORI.B   #%10000000,D6
         MOVE.B  D6,D1               * Pass source into subroutine
         JSR     CHECK_VALID_EA
-        BSR print_EA
-        BSR print_NEWLINE
+        JSR     PRINT_EA2
         RTS
 
 *should be for LEA and ADDA(SHOULD WORK BETTER THEN EA GROUP 1)
@@ -1198,8 +1228,7 @@ EA_GROUP4     MOVE.W  (A2),D1
         JSR     CHECK_VALID_EA
         MOVE.B  D5,D1               * Pass destination into subroutine
         JSR     CHECK_VALID_EA
-        BSR print_EA
-        BSR print_NEWLINE
+        JSR     PRINT_EA2
         RTS
         
 ADDQ_EA MOVE.W  (A2),D6                 * Prepare source data bits
@@ -1213,6 +1242,7 @@ ADDQ_EA MOVE.W  (A2),D6                 * Prepare source data bits
         JSR     CHECK_VALID_EA
         MOVE.B  D5,D1               * Pass destination into subroutine
         JSR     CHECK_VALID_EA
+        JSR     PRINT_EA2
         RTS                                    !---
         
 MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          !---
@@ -1226,6 +1256,7 @@ MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          
             JSR     CHECK_VALID_EA
             MOVE.B  D5,D1               * Pass destination into subroutine
             JSR     CHECK_VALID_EA
+            JSR     PRINT_EA2
             RTS                                 !---
 
 
@@ -1233,7 +1264,9 @@ MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          
 
 MOVEM_EA   MOVE.W (A2),D2
            BTST    #10, D2
-           BEQ     Register_to_memory *IF THE DIRCTION BIT IS 0, 
+           BEQ     Register_to_memory *IF THE DIRCTION BIT IS 0,
+           
+            RTS 
           
            
                 
@@ -1257,6 +1290,87 @@ WRONG_INSTRUCTION            MOVE.B   #5, D7 ; A WRONG INSTRUCTION 'KEY'
                              MOVEA.L  A2, A6 ;MOVING THE MEMORY ADDRESS INTO A6 WHEN INSTRUCTION IS WRONG 
                              MOVE.W  (A2),D6 ;MOVE MEMORY ADDRESS INTO D6, AND INCREMENT A2 BY WORD
                              RTS 
+PRINT_MOVEM         
+                    
+                    BTST    #7,D6
+                    BEQ     PRINT_MOVEM_MASK            * PRINT THE REGSTER/S FIRST
+                    
+                    MOVE.B  D6,D4
+                    JSR     PRINT_EA
+                    JSR     PRINT_COMMA
+                    rts
+ALL_REG     REG     D0-D7/A0-A6         ; all registers                     
+PRINT_MOVEM_MASK        MOVE.W  D2,D4
+                        JSR     PRINT_MASK
+                        BTST    #7,D6                       * CHECK DIRCTION
+                        BNE     PRINT_INSTRUCTION_RETURN
+                        
+                        JSR     PRINT_COMMA
+                        MOVE.B  D6,D4
+                        JSR     PRINT_EA
+                        JMP     PRINT_NEWLINE
+                        RTS
+                        
+*________________PRINTS THE MASK
+*   PARAMETER   D4      THE MASK (WORD)
+*               D6      THE DIRECTION (BIT#7)
+                        
+PRINT_MASK      MOVEM.L     ALL_REG,-(SP)
+                MOVE.B      D6,D2                   * CHECKING IF IT IS PRE DECREMENT
+                AND.B       #$38,D2
+                CMP.B       #$20,D2
+                BNE         MEM_TO_REG
+
+REG_TO_MEM          MOVE.L      #15,D1              * START OF FLIPPING THE MASK
+                    
+FLIP_DIRECTION      CMP.B       #0,D1
+                    BLT         REG_TO_MEMO_OK
+                    MOVE.B      #31,D0
+                    SUB.B       D1,D0
+                    BTST        D1,D4
+                    BNE         FLIP_SET
+FLIP_CLR            BCLR        D0,D4
+                    BRA         FLIP_LOOP_INCR
+FLIP_SET            BSET        D0,D4                    
+FLIP_LOOP_INCR      SUB.B   #1,D1
+                    BRA     FLIP_DIRECTION 
+REG_TO_MEMO_OK      SWAP    D4
+
+MEM_TO_REG          MOVE.B  #0,D3
+                    MOVE.W  #0,A3
+REG_COUNT           CMP.B   #16,D3
+                    BEQ     PRINT_MASK_LOOP_START
+                    BTST    D3,D4
+                    BEQ     REG_COUNT_INCR
+                    ADD.W   #1,A3
+REG_COUNT_INCR      ADD.B   #1,D3
+                    BRA     REG_COUNT
+                    
+PRINT_MASK_LOOP_START   MOVE.B      #0,D3
+
+PRINT_MASK_LOOP     CMP.B   #16, D3
+                    BEQ     PRINT_MASK_RETURN
+                    BTST    D3,D4
+                    BNE     SET_MASK
+                    BRA     PRINT_MASK_LOOP_INCR
+SET_MASK        CMP.B   #7,D3
+                BGT     A_REG
+D_REG           MOVE.B  #$D0, D1
+                ADD.B   D3,D1
+                JSR     PRINT_REGISTOR
+                BRA     PRINT_SLASH
+A_REG               MOVE.B  #$98,D1
+                    ADD.B   D3,D1
+                    JSR     PRINT_REGISTOR
+PRINT_SLASH             CMP.W   #1,A3
+                        BEQ     PRINT_MASK_LOOP_INCR
+                        JSR     PRINT_FORWARD_SLASH
+                        SUB.W   #1,A3
+PRINT_MASK_LOOP_INCR    ADD.B   #1,D3
+                        SUB.B   #1,D1
+                        BRA     PRINT_MASK_LOOP
+PRINT_MASK_RETURN       MOVEM.L     (SP)+, ALL_REG
+                        RTS
            
 MODE_010  MOVE.W    (A2),D2
           AND.B     #$3F,D2
@@ -1316,6 +1430,49 @@ PRINT_EA        MOVEM.L A0-A1/A3-A6/D0-D7,-(SP)
                 MOVE.B  D4, D1
                 JSR     PRINT_REGISTOR              * DATA REG
                 BRA     PRINT_EA_RETURN
+PRINT_INSTRUCTION_RETURN    JSR         PRINT_NEWLINE
+                            MOVEM.L     (SP)+,A0-A1/A3-A6/D0-D7
+
+PRINT_BRA       
+                move.W      (A2),D6
+                
+                               
+                MOVE.L      A2,D2           * MOVING THE ADDRESS
+                CLR.L       D1
+                
+                CMP.B       #$00,D6                 * WORD DISPLACEMENT
+                BEQ         WORD_DISPLACEMENT
+                CMP.B       #$FF,D6                 * LONG DISPLACEMENT
+                BEQ         LONG_DISPLACEMENT
+                
+                MOVE.B      D6,D1                   * BYTE DISPLACEMENT
+                BTST        #7,D1                
+                BEQ         PRINT_BRA_RETURN        * POSITIVE DISPLACEMENT
+                
+                NOT.B       D1                      * 1'S COMPLEMENT    (ON BYTE)
+                ADD.W       #$1,D1                   * -> 2'S COMPLEMENT
+                NEG.L       D1
+                BRA         PRINT_BRA_RETURN
+
+WORD_DISPLACEMENT       MOVE.W      (A2)+,D1         * READ THE DISPLACEMENT (WORD)
+            
+                        BTST    #15,D1
+                        BEQ         PRINT_BRA_RETURN        * POSITIVE DISPLACEMENT
+                        
+                        NOT.W       D1                      * 1'S COMPLEMENT    (ON WORD)
+                        ADD.L       #$1,D1                   * -> 2'S COMPLEMENT
+                        NEG.L       D1
+                        BRA         PRINT_BRA_RETURN
+
+LONG_DISPLACEMENT           MOVE.L      (A2)+,D1         * READ THE DISPLACEMENT (LONG)
+    
+PRINT_BRA_RETURN    JSR     PRINT_DOLLAR
+                    ADD.L   D2,D1
+                    MOVE.L  D1,D5
+                    MOVE.L  #4,D3
+                    JSR     PRINT_HEX
+                    JSR     PRINT_NEWLINE                            
+                    RTS                         * RETURN TO THE CALLER
 
 CHECK_EA_AR         CMP.B   #$8, D3
                     BNE     CHECK_EA_INDIRECT
@@ -1835,6 +1992,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
