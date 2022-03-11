@@ -175,7 +175,7 @@ userInputRepeat
     MOVE.B  #5,D0
     TRAP    #15
     
-    CMP.B   #$00,(A1)
+    CMP.B   #$0D,D1
     BEQ     userInputStart
  
     SIMHALT
@@ -815,13 +815,24 @@ data
 *Paramemeters: No parameters
 **********************************************************
 USERINPUT:
-
+    CLR.L   D1
+    CLR.L   D2
+    CLR.L   D3
+    CLR.L   D4
+    CLR.L   D5
+    CMP.B   #0,(RepeatFlag)
+    BEQ     welcomeExplanation
+    BRA     firstInput
+    AND.L   #$00000000,(Input1)
+    AND.L   #$00000000,(Input2)
+    
 welcomeExplanation
     LEA     STARTMESSAGE,A1         
     MOVE.B  #14,D0
     TRAP    #15
     
     ADD.B   #8,(LineCounter)
+    MOVE.B  #1,(RepeatFlag)
 
 firstInput
     LEA     INPUT1MESSAGE,A1        
@@ -1674,6 +1685,7 @@ SPACES      DC.B    '  ',0
 InputQuality    DC.B    1       Set to 1 for default good
 LineCounter     DC.B    0      Counts the number of lines used per screen (max of 31)
 OutputType      DC.B    0      To track what type is being output
+RepeatFlag      DC.B    0
 
 nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
