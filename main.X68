@@ -316,18 +316,18 @@ byte
     LEA    byteout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
-    BRA return
+    RTS
 word
     LEA    wordout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT
-    BRA return
+    RTS
 long
     LEA    longout,A1        
     MOVE.B  #2,(OutputType)
     BSR     OUTPUT 
     BRA return
-    
+    RTS
 nop 
     MOVE.B  #4,(OutputType)
     BSR     OUTPUT
@@ -335,6 +335,7 @@ nop
     MOVE.B  #1,(OutputType)
     BSR     OUTPUT
     BRA return
+    RTS
     
 move
     * put the size of the instruction into D2 to use later
@@ -362,7 +363,8 @@ move
     BEQ long
     cmp #3,D2 *if the size is 3 branch to word
     BEQ word
-    BSR byte *otherwise branch to byte
+    cmp #1,D2 * if the size is 1 branch to byte
+    BEQ byte
   
     BSR MOVE_MOVEA_EA
     
@@ -381,7 +383,7 @@ movea
     cmp #2,D2 *if the size is 2 branch to long
     BEQ long
     cmp #3,D2 *if the size is 3 branch to word
-    BSR word
+    BEQ word
     
     BSR MOVE_MOVEA_EA
     
@@ -999,7 +1001,7 @@ inputError
 *Registers: Uses register A1, D0,
 *A1: Used to store messages and single char
 *Paramemeters: A1
-*A1: Stores what should be used
+*A1: Stores what should be used--++
 *********************************************************************  
 BITS0TO5_MASK   EQU %00111111
 BITS7TO8_MASK   EQU %11000000
@@ -1752,6 +1754,8 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
+
 
 
 
