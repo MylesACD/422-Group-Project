@@ -394,6 +394,7 @@ moveq
     LEA    moveqout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+    BSR MOVEQ_EA
     BRA return
 
     
@@ -411,7 +412,7 @@ movem
     CMP #1, D2 * if the size is 1 branch to long
     BEQ long
     BSR word * otherwise branch to word
-
+    BSR MOVEM_EA
     
     BRA return
 sub 
@@ -434,7 +435,7 @@ sub
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+    BSR EA_GROUP1
     BRA return
     
 addq 
@@ -457,7 +458,8 @@ addq
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR ADDQ_EA
+
     BRA return    
     
     
@@ -481,7 +483,8 @@ add
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP1
+
     BRA return
 
 adda
@@ -504,7 +507,8 @@ adda
     BEQ long
     cmp #0,D2 *if the size is 0 branch to word
     BEQ word
-       
+        BSR EA_GROUP4
+   
     BRA return
 
     
@@ -515,6 +519,8 @@ rts
     LEA    rtsout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+        BSR EA_GROUP2
+
     BRA return
     
     
@@ -525,6 +531,8 @@ jsr
     LEA    jsrout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+        BSR EA_GROUP2
+
     BRA return
     
     
@@ -547,7 +555,7 @@ not
     BEQ word
     BSR byte *otherwise branch to byte
     
-
+    BSR EA_GROUP3
     
     BRA return
 
@@ -571,7 +579,8 @@ lsl
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
 
 lsr
@@ -594,7 +603,8 @@ lsr
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
 asl
     MOVE.B  #4,(OutputType)
@@ -616,7 +626,8 @@ asl
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
 
 asr
@@ -639,7 +650,8 @@ asr
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
     
 rol
@@ -662,7 +674,8 @@ rol
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
 
 ror
@@ -685,7 +698,8 @@ ror
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+        BSR EA_GROUP2
+
     BRA return
     
     
@@ -697,6 +711,8 @@ lea
     LEA    leaout,A1
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
+        BSR EA_GROUP4
+
     BRA return
     
 or
@@ -718,7 +734,7 @@ or
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+    BSR EA_GROUP1
     BRA return
     
 and
@@ -740,7 +756,7 @@ and
     cmp #1,D2 *if the size is 1 branch to word
     BEQ word
     BSR byte *otherwise branch to byte
-    
+    BSR EA_GROUP1
     BRA return    
 
 bcc
