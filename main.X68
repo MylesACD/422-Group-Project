@@ -578,7 +578,7 @@ jsr
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
-    BSR EA_GROUP2
+    BSR PRINT_BRA
     BRA return
     
     
@@ -1442,9 +1442,9 @@ PRINT_EA        MOVEM.L A0-A1/A3-A6/D0-D7,-(SP)
                 JSR     PRINT_REGISTOR              * DATA REG
                 BRA     PRINT_EA_RETURN
 PRINT_INSTRUCTION_RETURN    JSR         PRINT_NEWLINE
-                            MOVEM.L     (SP)+,A0-A1/A3-A6/D0-D7
+ 
+PRINT_BRA                           
 
-PRINT_BRA       
                 move.W      (A2),D6
                 
                                
