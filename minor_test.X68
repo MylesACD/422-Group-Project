@@ -9,7 +9,7 @@ START:                  ; first instruction of program
 
 * Put program code here
 
-      MOVE.B #$04, D6
+    MOVE.B #$04, D6
     MOVE.W #$1004, A2
     MOVEQ #10, D6
     MOVEA.L A2, A3
@@ -21,7 +21,7 @@ here
     JSR there
     NOT.L (A3)
     LEA (A1),A3
-    OR.L input1, D5
+    OR.W #%10001111, D5
     MOVEM.L D0-D7/A0-A6,-(SP) 
     AND.B D1,D6
     ADD.B D3,D4
@@ -41,7 +41,7 @@ here
 letsgo
 
 * calls---------------------------------------------------------    
-    BRA userInputRepeat
+   
 there    
     RTS
 * end testing--------------------------------------------------------------
@@ -54,6 +54,7 @@ there
 * Put variables and constants here
 
     END    START        ; last line of source
+
 
 *~Font name~Courier New~
 *~Font size~10~
