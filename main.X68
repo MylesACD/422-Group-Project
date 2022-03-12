@@ -1768,6 +1768,8 @@ PRINT_FORWARD_SLASH     MOVEM.L     ALL_REG,-(SP)
 
      OUTPUT:
      
+    
+     
      CMP.B  #1,(OutputType)
      BEQ    outputOpcode
      CMP.B  #2,(OutputType)
@@ -1778,9 +1780,7 @@ PRINT_FORWARD_SLASH     MOVEM.L     ALL_REG,-(SP)
      BEQ    OutputAddress
      
 outputOpcode    
-     CMP.B  #30, (LineCounter)      Console holds 32 lines total, 30 used for dissassembly data
-     BGE    outputOpcodeNewScreen
-     
+         
      MOVE.B #14,D0
      TRAP   #15
      
@@ -1802,14 +1802,8 @@ outputOpcodeNewScreen
      
      MOVE.B #0,(LineCounter)        Sets LineCounter to 0 to reset screen
      
-     MOVE.L (SP)+,A1                Retriving message to be used
-     
-     MOVE.B #14,D0                  Outputting decoded message
-     TRAP   #15
-     
-     ADD.B  #1,(LineCounter)        Add to line counter for new screen
-     
-     RTS
+     MOVE.L (SP)+,A1                Retriving message to be used     
+     BRA    outputAddressLoopEndContinue
      
 outputSize
     MOVE.B  #14,D0
@@ -1884,6 +1878,9 @@ outputAddressLoop
     
     
 outputAddressLoopEnd
+    CMP.B  #30, (LineCounter)      Console holds 32 lines total, 30 used for dissassembly data
+    BGE    outputOpcodeNewScreen
+outputAddressLoopEndContinue
     MOVE.B  #$00,(A1)
     MOVE.L  (SP)+,D6
     LEA     addressOutput,A1
@@ -1897,6 +1894,7 @@ outputAddressLoopEnd
 
 
     RTS
+
 
 *********************************************************************
 *Subroutine: CONVERTHTOA
