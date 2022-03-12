@@ -13,13 +13,16 @@ START:                           *Main
     MOVE.B  #0,(LineCounter)
 userInputStart
     BSR     USERINPUT
-    LEA     input1,A2
-*memoryLoop
-   * BSR     OPCODE
-   * ADD.L   #2,A2
-    *CMP.B   A2,(input2)
-    *BGE     userInputRepeat
-    *BRA     memoryLoop
+    MOVE.L    input1,A2
+memoryLoop
+    
+    BSR     OPCODE
+    ADD.L   #2,A2
+    MOVE.L A2,D3 * current
+    MOVE.L (input2),D6 * the upper bound
+    CMP.L   D6,D3
+    BGE     userInputRepeat
+    BRA     memoryLoop
 
     
 *testing purposes----------------------------------------------------
@@ -203,6 +206,7 @@ userInputRepeat
 OPCODE:
     CLR D3
     
+    
     CMP #$4E75, (A2) * RTS compare, this has to be done before JSR, LEA, and NOT
     BEQ rts
     
@@ -213,6 +217,13 @@ OPCODE:
     LSR #8,D3 * make D3 only contain the first 4 bits of the instruction as its LSig word
     LSR #4,D3
     
+    
+    CMP #%1111, D3 * none of the instructions we are processing have these
+    BEQ data
+    CMP #%0000, D3 * 
+    BEQ data
+
+
     
     CMP #%1000, D3 * OR compare
     BEQ or
@@ -1945,7 +1956,7 @@ RepeatFlag      DC.B    0
 nopout  DC.B    'NOP',CR,LF,0
 moveout  DC.B    'MOVE',0
 moveaout DC.B      'MOVEA',0
-moveqout DC.B   'MOVEQ',0
+moveqout DC.B   'MOVEQ  ',0
 movemout DC.B   'MOVEM',0
 
 subout    DC.B  'SUB',0
@@ -1972,9 +1983,9 @@ bgtout DC.B     'BGT',0
 bleout DC.B     'BLE',0
 beqout DC.B     'BEQ',0
 
-jsrout DC.B     'JSR',0
-rtsout DC.B     'RTS',CR,LF,0
-braout DC.B     'BRA',0
+jsrout DC.B     'JSR    ',0
+rtsout DC.B     'RTS    ',CR,LF,0
+braout DC.B     'BRA    ',0
 
 dataout DC.B    'DATA   ',0
 
@@ -1992,6 +2003,7 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
 
 
 
