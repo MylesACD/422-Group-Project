@@ -25,157 +25,7 @@ Loopreturn
     BGE     userInputRepeat
     BRA     memoryLoop
 
-    
-*testing purposes----------------------------------------------------
-    MOVE.B #$04, D6
-    MOVE.W #$1004, A2
-    MOVEQ #10, D6
-    MOVEA.L A2, A3
-    CMP D1,D3
-    SUB.L D2, D6
-
-    BRA here
-here
-    JSR there
-    NOT.L (A3)
-    LEA (A1),A3
-    OR.L input1, D5
-    MOVEM.L D0-D7/A0-A6,-(SP) 
-    AND.B D1,D6
-    ADD.B D3,D4
-    ADDA.W A1,A2
-    ADDQ.L #7,D1
-    LSL.B #3,D1
-    lSR.W #2,D1
-    ASL.B #6,D2
-    ASR.W #5,D2
-    ROL.B #5,D3
-    ROR.W #4,D3
-    BGT letsgo
-    CMP #4,D3 
-    BEQ letsgo
-    BLE letsgo
-   
-letsgo
-    
-* calls-------------------------------------------------------
-    MOVE.W #$1012, A2
-    BSR     OPCODE * test MOVE.B
-
-    MOVE.W #$1016, A2
-    BSR     OPCODE * test MOVEA.W
-    
-    MOVE.W #$101A, A2
-    BSR     OPCODE * test MOVEQ
-   
-    MOVE.W #$101C, A2
-    BSR     OPCODE *test MOVEA.L
-    
-    MOVE.W #$101E, A2
-    BSR     OPCODE *test DATA
-    
-    
-    MOVE.W #$1020, A2
-    BSR     OPCODE *test SUB.L
-    
-    MOVE.W #$1022, A2
-    BSR     OPCODE *test BRA
-    
-    MOVE.W #$1026, A2
-    BSR     OPCODE *test JSR
-    
-    
-    LEA empty,A1
-    MOVE.B  #1,(OutputType)       
-    BSR    OUTPUT
-
-    
-    MOVE.W #$102C, A2
-    BSR     OPCODE *test NOT
-    
-    MOVE.W #$102E, A2
-    BSR     OPCODE *test LEA
-    
-    MOVE.W #$1030, A2
-    BSR     OPCODE *test OR
-    
-     LEA empty,A1
-    MOVE.B  #1,(OutputType)       
-    BSR    OUTPUT
-
-    
-    MOVE.W #$1036, A2
-    BSR     OPCODE *test MOVEM
-
-    MOVE.W #$103A, A2
-    BSR     OPCODE *test AND
-    
-    MOVE.W #$103C, A2
-    BSR     OPCODE *test ADD
-    
-    LEA empty,A1
-    MOVE.B  #1,(OutputType) * new line  
-    BSR    OUTPUT
-
-    MOVE.W #$103E, A2
-    BSR     OPCODE *test ADDA
-    
-    MOVE.W #$1040, A2
-    BSR     OPCODE *test ADDQ
-    
-    MOVE.W #$1042, A2
-    BSR     OPCODE *test LSL
-
-    MOVE.W #$1044, A2
-    BSR     OPCODE *test LSR
-    
-    MOVE.W #$1046, A2
-    BSR     OPCODE *test ASL
-    
-    LEA empty,A1
-    MOVE.B  #1,(OutputType) * new line  
-    BSR    OUTPUT
-
-
-    MOVE.W #$1048, A2
-    BSR     OPCODE *test ASR
-    
-    
-    MOVE.W #$104A, A2
-    BSR     OPCODE *test ROL
-
-    MOVE.W #$104C, A2
-    BSR     OPCODE *test ROR
-    
-    LEA empty,A1
-    MOVE.B  #1,(OutputType) * new line  
-    BSR    OUTPUT
-
-    MOVE.W #$104E, A2
-    BSR     OPCODE *test BGT
-
-    MOVE.W #$1056, A2
-    BSR     OPCODE *test BEQ
-    
-    MOVE.W #$105A, A2
-    BSR     OPCODE *test BLE
-    
-
   
-    MOVE.W #$118C, A2
-    BSR     OPCODE *test RTS
-
-
-* calls---------------------------------------------------------    
-    BRA userInputRepeat
-there    
-    RTS
-* end testing--------------------------------------------------------------
- 
-
-     
-  
-
     
 userInputRepeat
     LEA     INPUTREPEAT,A1
@@ -2004,6 +1854,8 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
+
 
 
 

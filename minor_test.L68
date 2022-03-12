@@ -1,0 +1,74 @@
+00006000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 3/11/2022 6:55:30 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00006000                             7      ORG    $6000
+00006000                             8  START:                  ; first instruction of program
+00006000                             9  
+00006000                            10  * Put program code here
+00006000                            11  
+00006000  1C3C 0004                 12        MOVE.B #$04, D6
+00006004  347C 1004                 13      MOVE.W #$1004, A2
+00006008  7C0A                      14      MOVEQ #10, D6
+0000600A  264A                      15      MOVEA.L A2, A3
+0000600C  B641                      16      CMP D1,D3
+0000600E  9C82                      17      SUB.L D2, D6
+00006010                            18  
+00006010  6000 0002                 19      BRA here
+00006014                            20  here
+00006014  4EB9 00006052             21      JSR there
+0000601A  4693                      22      NOT.L (A3)
+0000601C  47D1                      23      LEA (A1),A3
+Line 24 ERROR: Undefined symbol
+0000601E  8AB9 004DBD16             24      OR.L input1, D5
+00006024  48E7 FFFE                 25      MOVEM.L D0-D7/A0-A6,-(SP) 
+00006028  CC01                      26      AND.B D1,D6
+0000602A  D803                      27      ADD.B D3,D4
+0000602C  D4C9                      28      ADDA.W A1,A2
+0000602E  5E81                      29      ADDQ.L #7,D1
+00006030  E709                      30      LSL.B #3,D1
+00006032  E449                      31      lSR.W #2,D1
+00006034  ED02                      32      ASL.B #6,D2
+00006036  EA42                      33      ASR.W #5,D2
+00006038  EB1B                      34      ROL.B #5,D3
+0000603A  E85B                      35      ROR.W #4,D3
+0000603C  6E00 0010                 36      BGT letsgo
+00006040  B67C 0004                 37      CMP #4,D3 
+00006044  6700 0008                 38      BEQ letsgo
+00006048  6F00 0004                 39      BLE letsgo
+0000604C  4E75                      40      RTS
+0000604E                            41  letsgo
+0000604E                            42  
+0000604E                            43  * calls---------------------------------------------------------    
+Line 44 ERROR: Undefined symbol
+0000604E  6000 5CC6                 44      BRA userInputRepeat
+00006052                            45  there    
+00006052  4E75                      46      RTS
+00006054                            47  * end testing--------------------------------------------------------------
+00006054                            48   
+00006054                            49  
+00006054                            50  
+00006054                            51  
+00006054  FFFF FFFF                 52      SIMHALT             ; halt simulator
+00006058                            53  
+00006058                            54  * Put variables and constants here
+00006058                            55  
+00006058                            56      END    START        ; last line of source
+
+2 errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+HERE                6014
+LETSGO              604E
+START               6000
+THERE               6052
