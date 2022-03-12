@@ -17,6 +17,7 @@ userInputStart
 memoryLoop
     
     BSR     OPCODE
+Loopreturn
     ADD.L   #2,A2
     MOVE.L A2,D3 * current
     MOVE.L (input2),D6 * the upper bound
@@ -528,6 +529,7 @@ add
     BEQ word
     cmp #0,D2 *if the size is 0 branch to byte
     BEQ word
+    RTS
 op6
     BSR EA_GROUP1
     BRA return
@@ -566,7 +568,6 @@ rts
     MOVE.B  #1,(OutputType)       
     BSR    OUTPUT
     
-    BSR EA_GROUP2
     BRA return
     
     
@@ -1132,9 +1133,9 @@ MOVE_MOVEA_EA   MOVE.W  (A2),D1
                 JSR     CHECK_VALID_EA
                 MOVE.B  D5,D1               * Pass destination into subroutine
                 JSR     CHECK_VALID_EA
-                JSR     PRINT_EA1
+                bsr     PRINT_EA1
                 
-                RTS
+                bra     loopreturn
                 
 PRINT_EA1
                 MOVE.B  D6,D4
@@ -1187,7 +1188,7 @@ EA1_END         ORI.B   #BITS7TO8_MASK,D6       * Populate the S and D bits
                 JSR     CHECK_VALID_EA
                 JSR     PRINT_EA1
 
-                RTS
+                bra loopreturn
 *should be for opcode LSL LSR ASL ASR ROL ROR but for register shifts
 EA_GROUP2             MOVE.W  (A2),D6         * Prepare to capture source EA
                 ANDI.W  #BITS9TO11_MASK,D6      * Isolate the source EA bits
@@ -1210,7 +1211,7 @@ EA2_END         MOVE.W  (A2),D5         * Prepare to capture destination EA
                 MOVE.B  D5,D1               * Pass destination into subroutine
                 JSR     CHECK_VALID_EA
                 JSR     PRINT_EA2
-                RTS   
+                bra loopreturn   
 
 
 *should be for opcode LSL LSR ASL ASR ROL ROR but for register shifts
@@ -1220,7 +1221,7 @@ EA_GROUP3     MOVE.W  (A2),D6
         MOVE.B  D6,D1               * Pass source into subroutine
         JSR     CHECK_VALID_EA
         JSR     PRINT_EA2
-        RTS
+        bra loopreturn
 
 *should be for LEA and ADDA(SHOULD WORK BETTER THEN EA GROUP 1)
 EA_GROUP4     MOVE.W  (A2),D1         
@@ -1240,7 +1241,7 @@ EA_GROUP4     MOVE.W  (A2),D1
         MOVE.B  D5,D1               * Pass destination into subroutine
         JSR     CHECK_VALID_EA
         JSR     PRINT_EA2
-        RTS
+        bra loopreturn
         
 ADDQ_EA MOVE.W  (A2),D6                 * Prepare source data bits
         ANDI.W  #BITS9TO11_MASK,D6      * Isolate source data bits
@@ -1254,7 +1255,7 @@ ADDQ_EA MOVE.W  (A2),D6                 * Prepare source data bits
         MOVE.B  D5,D1               * Pass destination into subroutine
         JSR     CHECK_VALID_EA
         JSR     PRINT_EA2
-        RTS                                    !---
+        bra loopreturn !---
         
 MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          !---
             AND.W   #$00FF,D6                                                   !---
@@ -1268,7 +1269,7 @@ MOVEQ_EA    MOVE.W  (A2),D6                 * Prepare source data bits          
             MOVE.B  D5,D1               * Pass destination into subroutine
             JSR     CHECK_VALID_EA
             JSR     PRINT_EA2
-            RTS                                 !---
+            bra loopreturn                                 !---
 
 
 
@@ -1277,7 +1278,7 @@ MOVEM_EA   MOVE.W (A2),D2
            BTST    #10, D2
            BEQ     Register_to_memory *IF THE DIRCTION BIT IS 0,
            
-            RTS 
+           bra loopreturn 
           
            
                 
@@ -1309,7 +1310,7 @@ PRINT_MOVEM
                     MOVE.B  D6,D4
                     JSR     PRINT_EA
                     JSR     PRINT_COMMA
-                    rts
+                    bra loopreturn
 ALL_REG     REG     D0-D7/A0-A6         ; all registers                     
 PRINT_MOVEM_MASK        MOVE.W  D2,D4
                         JSR     PRINT_MASK
@@ -1320,7 +1321,7 @@ PRINT_MOVEM_MASK        MOVE.W  D2,D4
                         MOVE.B  D6,D4
                         JSR     PRINT_EA
                         JMP     PRINT_NEWLINE
-                        RTS
+                        bra loopreturn
                         
 *________________PRINTS THE MASK
 *   PARAMETER   D4      THE MASK (WORD)
@@ -1381,7 +1382,8 @@ PRINT_MASK_LOOP_INCR    ADD.B   #1,D3
                         SUB.B   #1,D1
                         BRA     PRINT_MASK_LOOP
 PRINT_MASK_RETURN       MOVEM.L     (SP)+, ALL_REG
-                        RTS
+                        BSR print_newline
+                        bra loopreturn
            
 MODE_010  MOVE.W    (A2),D2
           AND.B     #$3F,D2
@@ -1442,6 +1444,7 @@ PRINT_EA        MOVEM.L A0-A1/A3-A6/D0-D7,-(SP)
                 JSR     PRINT_REGISTOR              * DATA REG
                 BRA     PRINT_EA_RETURN
 PRINT_INSTRUCTION_RETURN    JSR         PRINT_NEWLINE
+                            rts
  
 PRINT_BRA                           
 
@@ -1977,9 +1980,9 @@ asrout    DC.B  'ASR',0
 rolout    DC.B  'ROL',0
 rorout    DC.B  'ROR',0
 
-bgtout DC.B     'BGT',0
-bleout DC.B     'BLE',0
-beqout DC.B     'BEQ',0
+bgtout DC.B     'BGT    ',0
+bleout DC.B     'BLE    ',0
+beqout DC.B     'BEQ    ',0
 
 jsrout DC.B     'JSR    ',0
 rtsout DC.B     'RTS    ',CR,LF,0
@@ -2001,6 +2004,8 @@ LF  EQU $0A
 
 
     END    START        ; last line of source
+
+
 
 
 
